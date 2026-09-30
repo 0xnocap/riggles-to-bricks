@@ -1,0 +1,112 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Squiggle load lab</title><link rel="icon" href="data:,">
+<style>
+body{margin:16px;font:14px system-ui;background:#f3f5f7;color:#16242f}
+form{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:#fff;border-radius:12px;padding:10px;margin-bottom:12px}
+input[type=number]{width:6em}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px;background:#fff;border-radius:12px;padding:10px;margin-bottom:12px}
+.row img{width:100%;border-radius:6px;display:block;background:#fff;border:1px solid #e3e7ea}
+.row pre{margin:0;white-space:pre-wrap;font:12px ui-monospace,monospace}
+.err{color:#c0340c}
+@media (max-width:640px){.row{grid-template-columns:1fr}}
+</style></head>
+<body>
+<h1 style="font-size:18px">Squiggle load lab · input chain and fallbacks</h1>
+<form id="f">
+  <label>Squiggle # <input id="id" type="number" min="0" max="9999" value="1234"></label>
+  <label><input type="checkbox" name="fail" value="token"> fail token</label>
+  <label><input type="checkbox" name="fail" value="generator"> fail generator</label>
+  <label><input type="checkbox" name="fail" value="port"> fail port</label>
+  <label><input type="checkbox" name="fail" value="image"> fail image</label>
+  <button>Load</button>
+  <label>or upload <input id="file" type="file" accept="image/*"></label>
+</form>
+<div id="out"></div>
+<script type="module">
+import { failFromUrl, loadSquiggle, loadUpload } from '/src/squiggle/load.ts';
+import { buildAll } from '/src/squiggle/builder.ts';
+import { drawDots, portFeatures, portSquiggle } from '/src/squiggle/port.ts';
+
+const out = document.getElementById('out');
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+
+/** load (a number or a picture), build its Frame, sum it up */
+async function run(what, opts = {}, t0 = performance.now()) {
+  let slowMs = null;
+  const L = typeof what === 'number' ? await loadSquiggle(what, { ...opts, onSlow: () => { slowMs = Math.round(performance.now() - t0); opts.onSlow?.(); } }) : await loadUpload(what);
+  const loadMs = Math.round(performance.now() - t0);
+  const b = buildAll(L), t1 = performance.now();
+  const m = await b.get({ format: 'relief', display: 'frame', scale: opts.scale ?? 'large' });
+  const c = m.checks;
+  return {
+    L, model: m,
+    summary: {
+      origin: L.origin, id: L.id, hash: L.hash, type: L.curve.type, features: L.features, points: L.curve.points.length,
+      loadMs, slowMs, buildMs: Math.round(performance.now() - t1), notes: L.notes,
+      frame: { pieces: m.pieces.length, floating: c.floating, collisions: c.collisions, twoStud: c.twoStud, rules: c.rules.filter(r => !r.ok).map(r => r.name), nameplate: m.nameplate?.lines },
+    },
+  };
+}
+
+function show(title, r) {
+  const d = document.createElement('div'); d.className = 'row';
+  if (r.error) d.innerHTML = `<div><b>${esc(title)}</b></div><pre class="err">${esc(r.error)}</pre>`;
+  else d.innerHTML = `<div><b>${esc(title)}</b><img src="${r.L.original}" alt="Original"></div><pre>${esc(JSON.stringify(r.summary, null, 1))}</pre>`;
+  out.prepend(d);
+}
+
+async function attempt(title, what, opts) {
+  const t0 = performance.now();
+  let slowMs = null;
+  try { const r = await run(what, { ...opts, onSlow: () => { slowMs = Math.round(performance.now() - t0); } }, t0); show(title, r); return r.summary; }
+  catch (e) { show(title, { error: e.message }); return { error: e.message, ms: Math.round(performance.now() - t0), slowMs }; }
+}
+
+/** a picture of a Squiggle to upload: the port's circles, `width` wide, optionally cropped to its middle */
+async function makePicture(hash, width = 900, crop = 0, type = 'image/png') {
+  const r = portSquiggle(hash, width), c = document.createElement('canvas');
+  c.width = r.width; c.height = r.height;
+  drawDots(c.getContext('2d'), r);
+  let src = c;
+  if (crop) {
+    src = document.createElement('canvas');
+    src.width = Math.round(c.width * (1 - 2 * crop)); src.height = Math.round(c.height * (1 - 2 * crop));
+    src.getContext('2d').drawImage(c, -c.width * crop, -c.height * crop);
+  }
+  return new Promise(ok => src.toBlob(ok, type, 0.85));
+}
+
+/** a screenshot of a Squiggle's picture: the port's circles, `width` wide, at (x, y) on a page of colour `page`, with
+ *  text lines and a button under it; and the features the hash gives, to check the reading against */
+async function makeScreenshot(hash, { W = 1179, H = 2556, x = 40, y = 420, width = 1100, page = '#d4d4d8', ink = '#111', type = 'image/jpeg' } = {}) {
+  const r = portSquiggle(hash, width), c = document.createElement('canvas'), g = c.getContext('2d');
+  c.width = W; c.height = H;
+  g.fillStyle = page; g.fillRect(0, 0, W, H);
+  g.translate(x, y); drawDots(g, r); g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = ink; g.fillRect(x, y + r.height + 60, width * 0.6, 50); g.fillRect(x, y + r.height + 140, width * 0.4, 34);
+  g.fillStyle = '#2563eb'; g.fillRect(x, y + r.height + 220, width, 110);
+  return { blob: await new Promise(ok => c.toBlob(ok, type, 0.85)), truth: portFeatures(hash) };
+}
+
+/** a colourful picture that is not a Squiggle: a gradient under coloured tiles */
+async function makeJunk() {
+  const c = document.createElement('canvas'), x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 900, 600);
+  c.width = 900; c.height = 600;
+  g.addColorStop(0, '#f80'); g.addColorStop(0.5, '#08f'); g.addColorStop(1, '#8f0'); x.fillStyle = g; x.fillRect(0, 0, 900, 600);
+  for (let i = 0; i < 400; i++) { x.fillStyle = `hsl(${i * 37 % 360} 70% 50%)`; x.fillRect((i * 97) % 900, (i * 53) % 600, 30, 30); }
+  return new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
+}
+
+document.getElementById('f').onsubmit = e => {
+  e.preventDefault();
+  const id = +document.getElementById('id').value, fail = [...document.querySelectorAll('input[name=fail]:checked')].map(i => i.value);
+  attempt(`#${id}${fail.length ? ` · fail ${fail.join(', ')}` : ''}`, id, { fail });
+};
+document.getElementById('file').onchange = e => {
+  const file = e.target.files[0];
+  if (file) attempt(`upload · ${file.name}`, file).then(s => { window.lastUpload = s; });
+};
+const q = new URLSearchParams(location.search);
+if (q.get('id')) attempt(`#${q.get('id')} · fail ${failFromUrl().join(', ') || 'none'}`, +q.get('id'), { fail: failFromUrl() });
+Object.assign(window, { lab: { run, attempt, makePicture, makeScreenshot, makeJunk, loadSquiggle, loadUpload, buildAll }, labReady: true });
+</script>
+</body></html>

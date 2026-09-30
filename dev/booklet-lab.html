@@ -1,0 +1,56 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Booklet lab</title><link rel="icon" href="data:,">
+<style>body{margin:16px;font:14px system-ui;background:#f3f5f7;color:#16242f}#out{display:grid;grid-template-columns:repeat(auto-fill,minmax(640px,1fr));gap:12px}
+figure{margin:0;background:#fff;border-radius:12px;padding:8px}figure img{width:100%;display:block;border:1px solid #dde3e8}figcaption{font-size:12px;color:#5a6b78;margin-top:6px}</style></head>
+<body><h1 style="font-size:18px">Squiggle booklet · pages (?id=1234&amp;mode=frame-large)</h1><div id="out"></div>
+<script type="module">
+// Booklet lab: builds a model from a fixture, with a stand-in for load.ts's Loaded (the
+// original redrawn from the fixture's circles), and draws the booklet's pages or its PDF.
+// Exposes window.bk for scripts/booklet-shot.cjs.
+import { readCurve } from '/src/squiggle/curve.ts';
+import { buildRelief } from '/src/squiggle/display.ts';
+import { buildMosaic } from '/src/squiggle/mosaic.ts';
+import { makeBooklet, SqPageMaker } from '/src/squiggle/booklet.ts';
+
+async function loaded(id) {
+  const fx = await (await fetch(`/test/fixtures/squiggles/${id}.json`)).json(), curve = readCurve(fx);
+  const c = document.createElement('canvas'), k = 900 / fx.width; c.width = 900; c.height = 600;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 900, 600); x.lineWidth = Math.max(1, k);
+  for (const d of fx.dots) {
+    x.beginPath(); x.arc(d[0] * k, d[1] * k, (d[2] * k) / 2, 0, Math.PI * 2);
+    if (d[3]) { x.fillStyle = d[3]; x.fill(); }
+    if (d[4]) { x.strokeStyle = d[4]; x.stroke(); }
+  }
+  return { id: fx.id, hash: fx.hash, features: fx.features, origin: 'script', original: c.toDataURL('image/png'), source: fx, curve, notes: [] };
+}
+function model(src, mode) {
+  const [a, s = 'large'] = mode.split('-'), meta = { id: src.id, hash: src.hash };
+  return a === 'mosaic' ? buildMosaic(src.curve, s, meta) : buildRelief(src.curve, a, s, meta);
+}
+/** every page (or `only`) as JPEG data URLs, with the time per page */
+async function pages(id, mode, only = null, quality) {
+  const src = await loaded(id), m = model(src, mode), pm = new SqPageMaker(m, src, { quality });
+  const out = [];
+  for (let n = 1; n <= pm.total; n++) {
+    if (only && !only.includes(n)) continue;
+    const t = performance.now(), c = await pm.page(n);
+    out.push({ n, label: pm.label(n), ms: Math.round(performance.now() - t), img: c.toDataURL('image/jpeg', 0.9) });
+  }
+  pm.dispose();
+  return { total: pm.total, steps: m.steps.length, pieces: m.pieces.length, pages: out };
+}
+/** the whole PDF: build time, size, and the bytes as base64 */
+async function pdf(id, mode, quality) {
+  const src = await loaded(id), m = model(src, mode), t = performance.now();
+  const blob = await makeBooklet(m, src, undefined, { quality });
+  const ms = Math.round(performance.now() - t), u = new Uint8Array(await blob.arrayBuffer());
+  let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000));
+  return { ms, bytes: u.length, b64: btoa(s) };
+}
+window.bk = { pages, pdf, loaded, model };
+const q = new URLSearchParams(location.search);
+if (q.get('id')) {
+  const r = await pages(+q.get('id'), q.get('mode') ?? 'frame-large');
+  for (const p of r.pages) document.getElementById('out').insertAdjacentHTML('beforeend', `<figure><img src="${p.img}"><figcaption>${p.n}/${r.total} · ${p.label} · ${p.ms} ms</figcaption></figure>`);
+}
+window.bookletReady = true;
+</script></body></html>

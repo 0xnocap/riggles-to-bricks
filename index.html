@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Squiggle to Bricks</title>
+  <meta name="description" content="Build your Chromie Squiggle with real bricks: type its number, watch it build in 3D, flip through the instructions and order the parts. Free, unofficial, personal use.">
+  <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d161d" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Squiggle to Bricks">
+  <meta property="og:title" content="Squiggle to Bricks">
+  <meta property="og:description" content="Build your Chromie Squiggle with real bricks: 3D build animation, step-by-step instructions and a parts list to order. Free, unofficial, personal use.">
+  <meta property="og:image" content="https://hs7j4yk4sz-boop.github.io/squiggle-to-bricks/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Chromie Squiggle #1234 built in bricks: a framed relief, next to the original">
+  <meta property="og:url" content="https://hs7j4yk4sz-boop.github.io/squiggle-to-bricks/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Squiggle to Bricks">
+  <meta name="twitter:description" content="Build your Chromie Squiggle with real bricks. Free, unofficial, personal use.">
+  <meta name="twitter:image" content="https://hs7j4yk4sz-boop.github.io/squiggle-to-bricks/og.png">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g'%3E%3Cstop offset='0' stop-color='%23C91A09'/%3E%3Cstop offset='.22' stop-color='%23FE8A18'/%3E%3Cstop offset='.4' stop-color='%23BBE90B'/%3E%3Cstop offset='.6' stop-color='%23008F9B'/%3E%3Cstop offset='.8' stop-color='%230055BF'/%3E%3Cstop offset='1' stop-color='%23923978'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='7' fill='%23fff'/%3E%3Cpath d='M5 19c2-9 4-9 5.5-1s3.5 8 5.5 0 3.5-8 5.5 0 3 7 5.5-1' fill='none' stroke='url(%23g)' stroke-width='5.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./" aria-label="Squiggle to Bricks, home"><svg class="mark" viewBox="0 0 66 22" aria-hidden="true"><rect x="0" y="5" width="6" height="11" fill="#C91A09"/><rect x="6" y="8" width="6" height="11" fill="#FE8A18"/><rect x="12" y="9" width="6" height="11" fill="#F2CD37"/><rect x="18" y="8" width="6" height="11" fill="#BBE90B"/><rect x="24" y="6" width="6" height="11" fill="#4B9F4A"/><rect x="30" y="4" width="6" height="11" fill="#008F9B"/><rect x="36" y="2" width="6" height="11" fill="#078BC9"/><rect x="42" y="1" width="6" height="11" fill="#0055BF"/><rect x="48" y="2" width="6" height="11" fill="#4B2E8C"/><rect x="54" y="5" width="6" height="11" fill="#923978"/><rect x="60" y="8" width="6" height="11" fill="#C870A0"/></svg><span class="bt">Squiggle to Bricks</span></a>
+    <span class="tag">Free · runs in your browser</span>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="hero-text">
+        <h1>Squiggle to Bricks</h1>
+        <p class="lede">Build your Chromie Squiggle with real bricks. Free, unofficial, personal use.</p>
+        <p class="lede2">Type your Squiggle’s number: watch it build in 3D, flip through the step-by-step instructions and order the parts.</p>
+      </div>
+      <figure class="hero-pic"><img src="./hero.jpg" width="1120" height="700" alt="Chromie Squiggle #1234 in bricks: a relief in a black frame, hung on a wall"><figcaption>#1234 · Large Frame · 674 pieces · 54 × 29 cm</figcaption></figure>
+      <section class="panel" id="input-panel">
+        <form class="by-number" id="by-number" autocomplete="off" novalidate>
+          <label for="sq-number" class="field-title">Squiggle #</label>
+          <div class="num-row">
+            <span class="hash" aria-hidden="true">#</span>
+            <input id="sq-number" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="1234" aria-describedby="num-help">
+            <button class="go" type="submit">Build</button>
+          </div>
+          <span class="field-sub" id="num-help">Any Chromie Squiggle from 0 to 9999.</span>
+          <div class="error" id="error" role="alert" hidden><span id="error-text"></span> <label class="btn light" id="error-upload" hidden>Upload an image<input type="file" id="file2" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label></div>
+        </form>
+        <div class="examples">
+          <span class="ex-title">No Squiggle at hand? Try one:</span>
+          <div id="examples" class="example-row"></div>
+        </div>
+        <p class="upload-line"><label class="linkbtn" id="upload-link" tabindex="0">or upload an image of your Squiggle<input type="file" id="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label></p>
+        <p class="privacy"><strong>Nothing is uploaded.</strong> Your Squiggle comes from Art Blocks’ public API and is redrawn in your browser with its own script. No server, no account, no tracking.</p>
+      </section>
+    </div>
+
+    <nav class="secnav" id="secnav" hidden aria-label="Sections">
+      <a href="#sec-model" data-sec="sec-model"><i>1</i><span><span class="lg">Your </span>Squiggle</span></a>
+      <a href="#sec-manual" data-sec="sec-manual"><i>2</i><span>Instructions</span></a>
+      <a href="#sec-buy" data-sec="sec-buy"><i>3</i><span>Buy <span class="lg">the </span>bricks</span></a>
+    </nav>
+
+    <div class="result" id="result" hidden>
+      <section class="sec" id="sec-model">
+        <div class="sec-hd"><span class="num">1</span><div><h2>Your Squiggle</h2><p id="model-sub" class="dots">Built and checked in your browser</p></div></div>
+        <div class="duo">
+          <figure class="original" id="original">
+            <div class="orig-img"><img id="orig-img" alt="The original Chromie Squiggle" hidden></div>
+            <figcaption>
+              <span class="orig-label">Original</span>
+              <b id="orig-title">Chromie Squiggle</b>
+              <span id="orig-origin" class="orig-origin"></span>
+            </figcaption>
+            <div class="feat-box" id="feat-box">
+              <p class="feat-est" id="feat-est" hidden></p>
+              <dl class="features" id="features"></dl>
+            </div>
+            <a id="orig-link" class="orig-link" href="#" target="_blank" rel="noopener" hidden>View on Art Blocks ↗</a>
+          </figure>
+          <div class="stage">
+            <canvas id="view" aria-label="3D view of the brick model"></canvas>
+            <div class="busy" id="busy" hidden><span class="spinner"></span><span id="busy-text">Building…</span></div>
+            <div class="stage-btns" id="stage-btns">
+              <button id="replay" class="chipbtn" title="Play the build again">↻ Replay</button>
+              <button id="skip" class="chipbtn" title="Show the finished model">Skip ⏭</button>
+              <button id="reset" class="chipbtn" title="Back to the default view" hidden>⌖ Reset view</button>
+            </div>
+            <p class="hint" id="hint" hidden>Drag to turn · pinch or scroll to zoom</p>
+          </div>
+        </div>
+
+        <div class="pick">
+          <div class="seg" role="radiogroup" aria-label="Format">
+            <button data-format="relief" role="radio">Relief <small>a raised ribbon</small></button>
+            <button data-format="mosaic" role="radio">Mosaic <small>flat tiles</small></button>
+          </div>
+          <div class="seg" id="scales" role="radiogroup" aria-label="Size"></div>
+        </div>
+        <div class="displays" id="displays" role="radiogroup" aria-label="Display">
+          <button class="disp" data-display="frame" role="radio"><span class="thumb"><img alt="" hidden><span class="tspin"></span></span><span class="dtxt"><b>Frame</b><small>hung on the wall</small><span class="dfig"></span></span></button>
+          <button class="disp" data-display="floating" role="radio"><span class="thumb"><img alt="" hidden><span class="tspin"></span></span><span class="dtxt"><b>Floating</b><small>on clear supports</small><span class="dfig"></span></span></button>
+          <button class="disp" data-display="backdrop" role="radio"><span class="thumb"><img alt="" hidden><span class="tspin"></span></span><span class="dtxt"><b>Backdrop</b><small>with a white wall</small><span class="dfig"></span></span></button>
+        </div>
+
+        <div class="stats" id="stats"></div>
+        <details class="more" id="more">
+          <summary><span class="pill" id="pill"></span><span class="status-short" id="status-short"></span><span class="more-link">More info</span></summary>
+          <div class="more-body">
+            <div class="read">
+              <canvas id="curve" width="240" height="160" aria-label="The Squiggle’s line as we read it"></canvas>
+              <div><strong>What we read</strong><br><span id="read-text"></span></div>
+            </div>
+            <ul class="checks" id="checks"></ul>
+            <ul class="rules" id="rules"></ul>
+            <ul class="notes" id="notes"></ul>
+          </div>
+        </details>
+        <div class="tools">
+          <button id="vid-square" class="tool act-btn"><span class="ti" aria-hidden="true">🎬</span><span><b>Video</b><small class="dots"><span><span>Download</span><span>square, 23&nbsp;s</span></span></small></span></button>
+          <button id="vid-story" class="tool act-btn"><span class="ti" aria-hidden="true">📱</span><span><b>Video</b><small class="dots"><span><span>Download</span><span>9:16 story, 23&nbsp;s</span></span></small></span></button>
+          <button id="dl-nameplate" class="tool act-btn"><span class="ti" aria-hidden="true">🏷️</span><span><b>Nameplate</b><small class="dots"><span><span>Download</span><span>PNG to print</span></span></small></span></button>
+          <button id="dl-share" class="tool act-btn"><span class="ti" aria-hidden="true">🖼️</span><span><b>Share image</b><small class="dots"><span><span>Download</span><span>PNG 1200&nbsp;×&nbsp;630</span></span></small></span></button>
+          <a id="share-x" class="x" href="https://x.com/intent/post" target="_blank" rel="noopener"><span aria-hidden="true">𝕏</span> Share on X</a>
+        </div>
+      </section>
+
+      <section class="sec" id="sec-manual">
+        <div class="sec-hd"><span class="num">2</span><div><h2>Instructions</h2><p id="manual-sub">One page per step · flip through them here</p></div></div>
+        <div class="reader">
+          <div class="page-view" id="page-view">
+            <canvas id="page-canvas" width="1600" height="1131" aria-label="Instructions page"></canvas>
+            <span class="pg-busy" id="pg-busy" hidden><span class="spinner"></span></span>
+          </div>
+          <div class="pg-slider">
+            <button class="pg-arrow l" id="pg-prev" aria-label="Previous page">‹</button>
+            <input type="range" id="pg-range" min="1" max="1" value="1" aria-label="Page">
+            <strong id="pg-label">Cover</strong>
+            <button class="pg-arrow r" id="pg-next" aria-label="Next page">›</button>
+          </div>
+          <div class="thumbs" id="thumbs"></div>
+          <div class="reader-dl">
+            <button id="dl-pdf" class="act kit small-act act-btn"><span class="ic" aria-hidden="true">⬇</span><span><b>Download instructions</b><small id="pdf-note">PDF · A4</small></span></button>
+            <button id="dl-kit" class="act order small-act act-btn"><span class="ic" aria-hidden="true">📦</span><span><b>Download full kit</b><small>ZIP · instructions, parts lists, nameplate, share image</small></span></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="sec" id="sec-buy">
+        <div class="sec-hd"><span class="num">3</span><div><h2>Buy the bricks</h2><p>You order and pay directly on LEGO or BrickLink. Nothing goes through this site.</p></div></div>
+        <div class="shoplist" id="shoplist">
+          <div class="shop-top"><b>Your shopping list</b><span id="shop-sum"></span></div>
+          <div class="subtot" id="subtot"></div>
+          <div class="shop-grid" id="shop-grid"></div>
+          <button class="shop-more" id="shop-more">See all lots ▾</button>
+          <p class="shop-keys" id="shop-keys"></p>
+        </div>
+        <div class="ctas">
+          <div class="cta">
+            <button class="ctab lego act-btn" id="buy-lego"><span class="logo" aria-hidden="true">📋</span><span><b>Buy on LEGO Pick a Brick</b><small>Official shop<span class="sub2"> · upload your list</span></small></span><span class="n"><b id="lego-n"></b><span id="lego-total"></span></span></button>
+            <p class="swline plain" id="lego-line"></p>
+          </div>
+          <div class="cta">
+            <button class="ctab bl act-btn" id="buy-bl"><span class="logo" aria-hidden="true">🛒</span><span><b>Buy on BrickLink</b><small id="bl-sub">Independent shops<span class="sub2"> · copy your list</span></small></span><span class="n"><b id="bl-n"></b><span id="bl-total"></span></span></button>
+            <div class="after" id="bl-after" hidden>✓ <span id="bl-after-text">List copied</span>. <b>Next:</b> <a href="https://www.bricklink.com/v2/wanted/upload.page" target="_blank" rel="noopener">BrickLink Want → Upload ↗</a>, choose “Upload BrickLink XML format”, paste, then “Buy All”.</div>
+          </div>
+        </div>
+        <div class="guide" id="lego-guide" hidden>
+          <h3>Buy on LEGO Pick a Brick in 3 steps</h3>
+          <ol>
+            <li class="done"><span class="gn">✓</span><div><b>Your LEGO list is downloaded</b><small id="lego-file">Saved to your Downloads</small><button class="linkbtn" id="lego-again">Download it again</button></div></li>
+            <li><span class="gn">2</span><div><b>Go to Pick a Brick</b><small>LEGO’s own shop for single pieces. Uploading a list isn’t available in every country.</small><a class="btn go-lego" href="https://www.lego.com/pick-and-build/pick-a-brick" target="_blank" rel="noopener">Open Pick a Brick ↗</a></div></li>
+            <li><span class="gn">3</span><div><b>Click “Upload List”, then choose your file</b><small>It’s next to the search bar. LEGO adds every piece it has to your bag and lists any it couldn’t add: get those on BrickLink.</small>
+              <figure class="shots">
+                <img src="./help/pab-upload-button.png" alt="On Pick a Brick, the Upload List button next to the search bar" loading="lazy">
+                <span class="shot2"><img src="./help/pab-upload-dialog.png" alt="The upload window: Choose your file or drop it here" loading="lazy"><i class="ring" aria-hidden="true"></i></span>
+                <figcaption>Screenshots of the Pick a Brick website, for guidance.</figcaption>
+              </figure></div></li>
+          </ol>
+        </div>
+        <details class="howorder">
+          <summary>How ordering works</summary>
+          <div class="howorder-body">
+            <p><b>LEGO Pick a Brick</b> is LEGO’s own shop for single pieces. “Buy on LEGO Pick a Brick” downloads your list (<span id="pab-files"></span>). On Pick a Brick, click “Upload List”, choose the file, then check your bag: LEGO lists any piece it couldn’t add. Uploading a list isn’t available in every country: check <a href="https://www.lego.com/pick-and-build/pick-a-brick" target="_blank" rel="noopener">Pick a Brick</a> for yours.</p>
+            <p><b>BrickLink</b> is a marketplace of independent shops selling single pieces, including the ones LEGO has out of stock. “Buy on BrickLink” copies your list. Sign in (with a LEGO account), open <a href="https://www.bricklink.com/v2/wanted/upload.page" target="_blank" rel="noopener">Want → Upload</a>, choose “Upload BrickLink XML format”, paste, then open the new wanted list and use “Buy All” to find shops.</p>
+            <p><b>The cost</b> shown is an estimate from Pick a Brick prices (Sept 2026), an order of magnitude only: your shop sets the real price, plus shipping.</p>
+            <p class="files">Files: <button class="linkbtn" id="dl-pab">LEGO list (CSV)</button> · <button class="linkbtn" id="dl-xml">BrickLink list (XML)</button> · <button class="linkbtn" id="dl-csv">Parts list (CSV)</button></p>
+          </div>
+        </details>
+      </section>
+      <div class="progress toast" id="progress" hidden><div class="bar"><i id="bar"></i></div><span id="progress-text"></span></div>
+    </div>
+
+    <section class="faq">
+      <h2>Questions</h2>
+      <details><summary>Is this official?</summary><p>No. Squiggle to Bricks is a free, open-source, unofficial fan project, not affiliated with, sponsored or endorsed by Art Blocks, Snowfro, the LEGO Group or BrickLink. It sells nothing and earns nothing: no affiliate links, no commission, no tracking. Use it for your own Squiggle, for personal use: please don’t sell the models, the instructions or kits made from them.</p></details>
+      <details><summary>Where does the Squiggle come from?</summary><p>From Art Blocks’ public API: the site fetches your token’s data and its generator script, and redraws the Squiggle in your browser with that same script, in a sandbox, recording every circle it draws. That is the line the bricks follow. If the script can’t run, a faithful copy of it redraws the Squiggle from its hash; if Art Blocks can’t be reached, the site traces its published picture, or a picture you upload (the variant’s details are then approximate). Nothing is uploaded anywhere: your picture stays on your device.</p></details>
+      <details><summary>Can I really build it?</summary><p>Every model is checked by computer on its final piece list: all pieces are standard parts in real colours, every piece is attached (0 floating), no two pieces overlap (0 collisions), every piece of the Squiggle is held by at least two studs, and the table displays keep their centre of mass over the base. The site shows these checks for your model and says so plainly if one fails. Models have not been built with real bricks yet, so treat your first build as a test.</p></details>
+      <details><summary>Relief or Mosaic? Frame, Floating or Backdrop?</summary><p>The Relief turns the Squiggle into a ribbon of bricks that steps up where the line crosses itself, like the drawing. Hang it in its black <b>Frame</b>, stand it above a black base on clear supports (<b>Floating</b>), or in front of a white brick wall (<b>Backdrop</b>): the ribbon is the same in all three. The <b>Mosaic</b> is flat, tiles on black plates, like a pixel picture of your Squiggle.</p></details>
+      <details><summary>What are the clear pieces?</summary><p>On Floating and Backdrop, the ribbon stands on small Trans-Clear round pieces: a round 1×1 plate in a hole of the base, and two round 1×1 bricks on it. They are the hidden supports, and almost disappear. The instructions show where each one goes.</p></details>
+      <details><summary>How do I hang the Frame?</summary><p>Behind the Frame are four black Technic bricks with holes. Tie a picture cord through the holes of the two at the top and hang it on a picture hook, or on two hooks or a screw with a wall plug for the heavier Large Frame: the site tells you which for your model. The two bottom bricks keep it flat against the wall. The instructions have a “Hanging” page.</p></details>
+      <details><summary>How do I get the bricks? What does it cost?</summary><p>Under “Buy the bricks”: download the Pick a Brick file and upload it on LEGO Pick a Brick (“Upload List”), or copy the BrickLink list and upload it on BrickLink (Want → Upload). Every part of these models has a LEGO Element ID (stock varies). The cost shown is an estimate from Pick a Brick prices, an order of magnitude: you order and pay on those sites, never here.</p></details>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Unofficial fan project · Not affiliated with, sponsored or endorsed by Art Blocks, the LEGO Group or BrickLink. LEGO® is a trademark of the LEGO Group. Parts data: <a href="https://rebrickable.com" target="_blank" rel="noopener">Rebrickable</a>. Models are computer-checked, not physically built. Personal use only, no sale. No purchases, payments or personal data go through this site.</p>
+    <p class="links"><a href="https://github.com/hs7j4yk4sz-boop/squiggle-to-bricks/blob/main/DISCLAIMER.md" target="_blank" rel="noopener">Disclaimer</a> · <a href="https://github.com/hs7j4yk4sz-boop/squiggle-to-bricks/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a> · <a href="https://github.com/hs7j4yk4sz-boop/squiggle-to-bricks" target="_blank" rel="noopener">Source</a></p>
+    <p class="credit">Chromie Squiggle by Snowfro / Art Blocks. Made by John Karp. Inspired by <a href="https://x.com/victormustar" target="_blank" rel="noopener">@victormustar</a>'s Microduck.</p>
+  </footer>
+  <dialog id="before-order" aria-labelledby="bo-title">
+    <form method="dialog">
+      <h2 id="bo-title">Before you order</h2>
+      <ul>
+        <li>This is a free, open-source fan project. I don't sell anything, I don't receive any money or commission, and I'm not involved in your order in any way.</li>
+        <li>You buy directly from LEGO or from independent BrickLink sellers. Prices, availability, shipping, returns and customer service are entirely theirs.</li>
+        <li>Models are generated automatically and checked by software only. They have NOT been physically built. Parts may be missing, wrong or unavailable, and the result may not hold together.</li>
+        <li>Always review your cart carefully before paying.</li>
+        <li>Provided "as is", without warranty of any kind. Use at your own risk.</li>
+      </ul>
+      <label class="agree"><input type="checkbox" id="bo-ok" required> I understand</label>
+      <div class="bo-actions">
+        <button value="cancel" class="ghost" formnovalidate>Cancel</button>
+        <button value="ok" id="bo-continue" class="primary" disabled>Continue to download</button>
+      </div>
+    </form>
+  </dialog>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

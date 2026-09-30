@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Squiggle exports</title>
+<style>body{margin:16px;font:14px system-ui;background:#f3f5f7;color:#16242f}#out{display:grid;grid-template-columns:repeat(auto-fill,minmax(600px,1fr));gap:12px}
+figure{margin:0;background:#fff;border-radius:12px;padding:8px}figure img{width:100%;border-radius:6px;display:block}figcaption{font-size:12px;color:#5a6b78;margin-top:6px}.err{color:#c0340c}</style></head>
+<body><h1 style="font-size:18px">Squiggle exports · share images (?show=1234:frame-large,7583:backdrop-large&amp;remote=1)</h1><div id="out"></div>
+<script type="module">
+// Exports lab: builds a Squiggle model from a fixture and runs the exports on it.
+// window.ex is driven by scripts/exports-shot.cjs; ?show= renders share images here.
+import { readCurve } from '/src/squiggle/curve.ts';
+import { buildRelief } from '/src/squiggle/display.ts';
+import { buildMosaic } from '/src/squiggle/mosaic.ts';
+import * as X from '/src/squiggle/exports.ts';
+
+const fixtures = new Map(), models = new Map();
+async function fixture(id) {
+  if (!fixtures.has(id)) { const r = await fetch(`/test/fixtures/squiggles/${id}.json`); if (!r.ok) throw new Error(`no fixture for #${id}`); fixtures.set(id, await r.json()); }
+  return fixtures.get(id);
+}
+/** mode: frame-large, floating-small, backdrop-large, mosaic-large… */
+async function build(id, mode) {
+  const k = `${id}:${mode}`;
+  if (!models.has(k)) {
+    const fx = await fixture(id), [kind, scale] = mode.split('-'), curve = readCurve(fx), meta = { id: fx.id, hash: fx.hash };
+    models.set(k, kind === 'mosaic' ? buildMosaic(curve, scale, meta) : buildRelief(curve, kind, scale, meta));
+  }
+  return models.get(k);
+}
+/** the original picture, redrawn from the fixture's circles on white (3:2), or Art Blocks' static image (core-api: media-proxy's redirect has no CORS header) */
+async function info(id, remote = false) {
+  const fx = await fixture(id);
+  if (remote) return { id, hash: fx.hash, original: `https://core-api.artblocks.io/media/1/0x059edd72cd353df5106d2b9cc5ab83a52287ac3a/${id}.png`, origin: 'image' };
+  const c = document.createElement('canvas'), k = 1200 / fx.width; c.width = 1200; c.height = 800;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.lineWidth = Math.max(1, k);
+  for (const d of fx.dots) {
+    x.beginPath(); x.arc(d[0] * k, d[1] * k, (d[2] * k) / 2, 0, Math.PI * 2);
+    if (d[3]) { x.fillStyle = d[3]; x.fill(); }
+    if (d[4]) { x.strokeStyle = d[4]; x.stroke(); }
+  }
+  return { id, hash: fx.hash, original: c.toDataURL('image/png'), origin: 'script' };
+}
+const b64 = async blob => { const u = new Uint8Array(await blob.arrayBuffer()); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
+
+window.ex = {
+  build, info,
+  async share(id, mode, remote = false) {
+    const m = await build(id, mode), t = performance.now(), blob = await X.shareImage(m, await info(id, remote));
+    return { png: await b64(blob), ms: Math.round(performance.now() - t), pieces: m.pieces.length, size: X.sizeText(m), name: X.fileBase(m, await info(id)) };
+  },
+  async kit(id, mode) {
+    const m = await build(id, mode), src = await info(id), booklet = new Blob(['%PDF-1.4\n% placeholder booklet\n'], { type: 'application/pdf' });
+    const zip = await X.makeKit(m, src, booklet);
+    return { zip: await b64(zip), name: X.fileBase(m, src), csv: X.partsCSV(m), xml: X.brickLinkXML(m), pab: X.pickABrickFiles(m), pieces: m.pieces.length };
+  },
+};
+
+const show = new URLSearchParams(location.search).get('show');
+if (show) for (const s of show.split(',')) {
+  const [id, mode] = s.split(':'), f = document.createElement('figure');
+  document.getElementById('out').append(f);
+  try {
+    const r = await window.ex.share(+id, mode ?? 'frame-large', new URLSearchParams(location.search).has('remote'));
+    f.innerHTML = `<img src="data:image/png;base64,${r.png}"><figcaption>${r.name} · ${r.pieces} pieces · ${r.size} · ${r.ms} ms</figcaption>`;
+  } catch (e) { f.innerHTML = `<p class="err">#${id} ${mode}: ${e.message}</p>`; }
+}
+</script></body></html>
