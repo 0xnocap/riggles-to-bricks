@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "verify": "tsx scripts/verify-squiggle.ts",
-    "flow": "node scripts/ui-flow.cjs"
+    "flow": "node scripts/ui-flow.cjs",
+    "bake": "node scripts/bake-riggles.mjs",
+    "check:colour": "tsx scripts/check-colour.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
