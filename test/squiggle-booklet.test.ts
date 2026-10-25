@@ -4,9 +4,8 @@ import { renderHex } from '../src/core/palette';
 import { PARTS, type Kind } from '../src/core/parts';
 import { bookletPlan, closeUp, ghost, hooksFor, insetRoom, INV, inventoryPages, layerCaption, modelTitle, NUM_SIZE, PAGE_MM, PAGE_PX, partIcon, PLAN, planAspect, planFit, PRINT, raisedRibbon, shortName, splitNote, SqPageMaker, stepLayout, stepNote, stepParts, stepPlan, wallFace, zoomFocus } from '../src/squiggle/booklet';
 import { readCurve } from '../src/squiggle/curve';
-import { buildRelief } from '../src/squiggle/display';
+import { buildRiggleModel } from '../src/riggle/build';
 import type { SqModel } from '../src/squiggle/model';
-import { buildMosaic } from '../src/squiggle/mosaic';
 import { NAMEPLATE_MM } from '../src/squiggle/nameplate';
 import { SPECTRUM, WHITE, BLACK } from '../src/squiggle/spectrum';
 
@@ -17,7 +16,7 @@ function model(id: number, mode: typeof MODES[number], scale: 'small' | 'large' 
   const k = `${id}${mode}${scale}`;
   if (!cache.has(k)) {
     const f = fixture(id), c = readCurve(f), meta = { id: f.id, hash: f.hash };
-    cache.set(k, mode === 'mosaic' ? buildMosaic(c, scale, meta) : buildRelief(c, mode, scale, meta));
+    cache.set(k, buildRiggleModel(c, meta, mode === 'mosaic' ? { format: 'mosaic', scale } : { format: 'relief', display: mode, scale }));
   }
   return cache.get(k)!;
 }
@@ -172,12 +171,12 @@ describe('part icons', () => {
     expect(shortName('plate', 16, 16, 1)).toBe('Plate 16×16');
     expect(shortName('tile', 2, 6, 1)).toBe('Tile 2×6');
     // one format everywhere: display · size · studs
-    expect(modelTitle(model(1234, 'frame'))).toBe('Frame · Large · 64 × 32 studs');
-    expect(modelTitle(model(1234, 'frame', 'small'))).toBe('Frame · Small · 48 × 24 studs');
-    expect(modelTitle(model(1234, 'mosaic'))).toBe('Mosaic · 96 × 48 studs');
-    expect(modelTitle(model(1234, 'mosaic', 'small'))).toBe('Mosaic · 64 × 32 studs');
+    expect(modelTitle(model(1234, 'frame'))).toBe('Frame · Large · 54 × 36 studs');
+    expect(modelTitle(model(1234, 'frame', 'small'))).toBe('Frame · Small · 48 × 32 studs');
+    expect(modelTitle(model(1234, 'mosaic'))).toBe('Mosaic · 72 × 48 studs');
+    expect(modelTitle(model(1234, 'mosaic', 'small'))).toBe('Mosaic · 48 × 32 studs');
     // Floating and Backdrop stand on a socle: its size, not the Frame's panel
-    expect(modelTitle(model(1234, 'floating'))).toBe('Floating · Large · 48 × 40 studs');
+    expect(modelTitle(model(1234, 'floating'))).toBe('Floating · Large · 64 × 40 studs');
     expect(modelTitle(model(1234, 'backdrop'))).toMatch(/^Backdrop · Large · \d+ × \d+ studs$/);
   });
 });
@@ -347,10 +346,10 @@ describe('page texts', () => {
     expect(hooksFor('About 1.3 kg: tie a picture cord through the holes of the two top Technic bricks and hang it on two picture hooks, or on a screw with a wall plug.')).toBe(2);
     expect(hooksFor('About 3.2 kg: tie a picture cord through the holes of the two top Technic bricks and hang it on two screws with wall plugs.')).toBe(2);
   });
-  it('names the Squiggle like the page does', () => {
+  it('names the riggle like the page does', () => {
     const m = model(1234, 'frame'), src = { id: null, hash: null, features: {}, origin: 'upload' as const, original: '' };
-    expect(new SqPageMaker(m, src).title).toBe('My Chromie Squiggle · Frame · Large · 64 × 32 studs');
-    expect(new SqPageMaker(m, { ...src, id: 1234, origin: 'script' }).title).toBe('Chromie Squiggle #1234 · Frame · Large · 64 × 32 studs');
+    expect(new SqPageMaker(m, src).title).toBe('Riggle · Frame · Large · 54 × 36 studs');
+    expect(new SqPageMaker(m, { ...src, id: 1234, origin: 'script' }).title).toBe('Riggle #1234 · Frame · Large · 54 × 36 studs');
   });
 });
 

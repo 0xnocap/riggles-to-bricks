@@ -510,7 +510,7 @@ export function buildMosaic(curve: Curve, scale: Scale, meta: { id: number; hash
   if (missing.length) notes.push(`Not sold by LEGO Pick a Brick: ${missing.map(l => `${l.name} ${l.colorName}`).join(', ')}.`);
 
   return {
-    id: meta.id, format: 'mosaic', display: null, scale, pieces, steps,
+    id: meta.id, format: 'mosaic', display: null, scale, pieces, steps, panel: { w: W, h: H },
     stepNotes: { 0: `Lay the ${steps[0].length} base plates edge to edge on a flat table: the tiles on top join them.` },
     bom: s.bom, subtotals: s.subtotals, colors: s.colors, checks, notes, dims: s.dims, grams: s.grams, cost: s.cost,
     pose: 'table', nameplate: { lines: nameplateLines(meta.id, meta.hash), piece: npIndex }, hanging: null,

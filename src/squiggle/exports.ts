@@ -87,7 +87,7 @@ export const pickABrickNames = (m: SqModel, src: SquiggleInfo, n = pickABrickFil
 
 /** The nameplate at real size (600 dpi): plain, and on a white sheet with cut marks. */
 export async function nameplateFiles(m: SqModel): Promise<{ plain: Blob; cutMarks: Blob }> {
-  const lines = m.nameplate?.lines ?? [`Chromie Squiggle #${m.id}`, 'Snowfro · Art Blocks · 2020'];
+  const lines = m.nameplate?.lines ?? [`Riggle #${m.id}`, 'riggles · 2026'];
   const [plain, cutMarks] = await Promise.all([nameplatePNG(lines), nameplatePNG(lines, 600, { cutMarks: true })]);
   return { plain, cutMarks };
 }
@@ -317,9 +317,9 @@ export function kitReadme(m: SqModel, src: SquiggleInfo, files: { name: string; 
     'Models are generated automatically and checked by software only. They have NOT been physically built. Parts may be missing, wrong or unavailable, and the result may not hold together.',
     'Weights and prices are estimates. Provided "as is", without warranty of any kind. Use at your own risk.',
     'Personal use only: do not sell the models, the instructions or kits made from them.',
-    'Unofficial fan project · Not affiliated with, sponsored or endorsed by Art Blocks, the LEGO Group or BrickLink. LEGO® is a trademark of the LEGO Group. Parts data: Rebrickable.',
+    'Not affiliated with, sponsored or endorsed by the LEGO Group or BrickLink. LEGO® is a trademark of the LEGO Group. Parts data: Rebrickable.',
     '', 'CREDITS',
-    "Chromie Squiggle by Snowfro / Art Blocks. Made by John Karp. Inspired by @victormustar's Microduck (https://x.com/victormustar).",
+    'Riggles is an onchain collection on Robinhood Chain (https://riggles.xyz). Built on Squiggle to Bricks by John Karp.',
     `Source code (MIT License): ${SOURCE_URL}`, '');
   return out.join('\r\n');
 }

@@ -386,11 +386,13 @@ function sizeText(m: SqModel) {
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 /** "Frame · Large · 64 × 32 studs" (the white panel), "Floating · Large · 48 × 40 studs" (the base), "Mosaic · 96 × 48 studs" */
 export function modelTitle(m: SqModel): string {
-  // The panel sizes come from the build, never from a constant copied in here:
-  // they moved once already when the panels were recut for riggles.
-  if (m.format === 'mosaic') return `Mosaic · ${RIGGLE_GRID[m.scale][0]} × ${RIGGLE_GRID[m.scale][1]} studs`;
+  // The panel comes off the model that was actually built. A copy of the
+  // constants here went stale the moment the panels were recut for riggles,
+  // and every booklet cover then claimed a size the model did not have.
+  const p = m.panel;
+  if (m.format === 'mosaic') return `Mosaic · ${p ? `${p.w} × ${p.h}` : `${RIGGLE_GRID[m.scale][0]} × ${RIGGLE_GRID[m.scale][1]}`} studs`;
   const d = m.display ?? 'frame', size = m.scale === 'large' ? 'Large' : 'Small';
-  if (d === 'frame') return `Frame · ${size} · ${RIGGLE_PANEL[m.scale].w} × ${RIGGLE_PANEL[m.scale].h} studs`;
+  if (d === 'frame') return `Frame · ${size} · ${p ? `${p.w} × ${p.h}` : `${RIGGLE_PANEL[m.scale].w} × ${RIGGLE_PANEL[m.scale].h}`} studs`;
   const base = m.pieces.filter(p => p.y === 0), ext = (a: 'x' | 'z', b: 'w' | 'd') => Math.max(...base.map(p => p[a] + p[b])) - Math.min(...base.map(p => p[a]));
   return `${cap(d)} · ${size} · ${ext('x', 'w')} × ${ext('z', 'd')} studs`;
 }

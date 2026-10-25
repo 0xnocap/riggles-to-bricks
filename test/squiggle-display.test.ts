@@ -96,7 +96,7 @@ describe('relief displays', () => {
       // parts sold by LEGO, or the notes say so
       for (const l of m.bom) if (!elementId(l.part, l.color)) expect(m.notes.join(' ')).toContain(`${l.name} ${l.colorName}`);
       // nameplate: the 2×6 black tile with the Squiggle's name
-      expect(m.nameplate?.lines[0]).toBe(`Chromie Squiggle #${id}`);
+      expect(m.nameplate?.lines[0]).toBe(`Riggle #${id}`);
       expect(m.nameplate?.lines[1]).toContain(`0x${f.hash.slice(2, 10)}`);
       const np = m.pieces[m.nameplate!.piece];
       expect(np).toMatchObject({ kind: 'tile', w: 6, d: 2, c: BLACK, nameplate: true, role: 'display' });

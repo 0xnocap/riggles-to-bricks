@@ -22,15 +22,20 @@ import { MX, MZ } from '../squiggle/ribbon';
 import { riggleCurve, type RiggleCurve } from './curve';
 
 /**
- * Relief panel, studs. 3:2, and 0.8 cm a stud: 38.4 x 25.6 cm and 48 x 32 cm.
+ * Relief panel, studs. 3:2, and 0.8 cm a stud: 38.4 x 25.6 cm and 43.2 x 28.8 cm.
  *
  * Both sides stay even. An odd panel has no Technic run that cuts to its
  * frame and no base plate layout that bonds across it, so a 45 wide panel
- * builds nothing at all.
+ * builds nothing at all. 3:2 with both sides even means the depth is a
+ * multiple of 4.
+ *
+ * The depth is also capped by the instructions, not just by the wall: a step
+ * page has to keep at least 14 px per stud on a 1600 px page or the studs
+ * cannot be counted, and a 40 deep panel came out at 13.9.
  */
 export const RIGGLE_PANEL: Record<Scale, { w: number; h: number }> = {
   small: { w: 48, h: 32 },
-  large: { w: 60, h: 40 },
+  large: { w: 54, h: 36 },
 };
 
 /** Mosaic grid, studs. Also 3:2: 38.4 x 25.6 cm and 57.6 x 38.4 cm. */

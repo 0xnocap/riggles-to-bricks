@@ -548,6 +548,7 @@ export function buildRelief(curve: Curve, display: Display, scale: Scale, meta: 
   const rb = ribbonOf(curve, scale, !!opts.studs, { panel: opts.panel, width: opts.width, square: opts.square });
   const want = opts.panel ?? RIBBON_PANEL[scale];
   const b = display === 'frame' ? frame(rb, want) : standing(rb, display === 'backdrop');
+  const panel = { w: rb.panel.w, h: rb.panel.h };
   const { pieces, steps, stepNotes } = b.K, root = new Set(b.root);
   const ck = checkModel(pieces, { root: (_, i) => root.has(i), base: (_, i) => root.has(i) });
   const comInside = b.com ? ck.com.inside : null;
@@ -562,7 +563,7 @@ export function buildRelief(curve: Curve, display: Display, scale: Scale, meta: 
   const hanging = b.hanging ? { points: b.hanging, advice: advice(s.grams) } : null;
   if (hanging) notes.push(hanging.advice);
   return {
-    id: meta.id, format: 'relief', display, scale, pieces, steps, stepNotes,
+    id: meta.id, format: 'relief', display, scale, pieces, steps, stepNotes, panel,
     bom: s.bom, subtotals: s.subtotals, colors: s.colors,
     checks: { ...ck, twoStud: b.twoStud, comInside, rules },
     notes, dims: s.dims, grams: s.grams, cost: s.cost, pose: b.pose,

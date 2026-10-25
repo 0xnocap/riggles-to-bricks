@@ -23,12 +23,12 @@ function fakeCtx() {
 }
 
 describe('nameplate', () => {
-  it('reads "Chromie Squiggle #id" and "Snowfro · Art Blocks · 2020 · 0x" + 8 hex chars', () => {
-    expect(nameplateLines(1234, fixture(1234).hash)).toEqual(['Chromie Squiggle #1234', 'Snowfro · Art Blocks · 2020 · 0xd553fb67']);
+  it('reads "Riggle #id" and "riggles · 2026 · 0x" + 8 hex chars', () => {
+    expect(nameplateLines(1234, fixture(1234).hash)).toEqual(['Riggle #1234', 'riggles · 2026 · 0xd553fb67']);
     for (const f of readdirSync(DIR).map(n => fixture(+n.replace('.json', '')))) {
       const [a, b] = nameplateLines(f.id, f.hash);
-      expect(a).toBe(`Chromie Squiggle #${f.id}`);
-      expect(b).toMatch(/^Snowfro · Art Blocks · 2020 · 0x[0-9a-f]{8}$/);
+      expect(a).toBe(`Riggle #${f.id}`);
+      expect(b).toMatch(/^riggles · 2026 · 0x[0-9a-f]{8}$/);
       expect(b.endsWith(f.hash.slice(2, 10))).toBe(true);
     }
   });
@@ -36,9 +36,9 @@ describe('nameplate', () => {
   it('takes the hash with or without its 0x prefix', () => {
     const h = fixture(1234).hash;
     expect(nameplateLines(1234, h.slice(2))).toEqual(nameplateLines(1234, h));
-    expect(nameplateLines(0, '0x0123456789')[1]).toBe('Snowfro · Art Blocks · 2020 · 0x01234567');
-    expect(nameplateLines(0, '0123456789')[1]).toBe('Snowfro · Art Blocks · 2020 · 0x01234567');
-    expect(nameplateLines(0, '0x0123456789')[0]).toBe('Chromie Squiggle #0');
+    expect(nameplateLines(0, '0x0123456789')[1]).toBe('riggles · 2026 · 0x01234567');
+    expect(nameplateLines(0, '0123456789')[1]).toBe('riggles · 2026 · 0x01234567');
+    expect(nameplateLines(0, '0x0123456789')[0]).toBe('Riggle #0');
   });
 
   it('draws both lines centred, line 1 bold and bigger, inside ≥ 6% side margins', () => {
