@@ -109,17 +109,26 @@ export interface RiggleCurve extends Curve {
   light: number[];
 }
 
+/**
+ * The canvas the collection publishes: 1800 x 1200, as the onchain renderer
+ * draws it (RigglesRenderer.sol:392) and as riggles.xyz/i/<id>.png serves it.
+ * The wave itself is composed in the centred 1200 square, so a wider canvas
+ * only adds background at the sides. Measuring here keeps every coordinate in
+ * step with the published art; the wave's shape does not depend on it.
+ */
+export const ART_CANVAS = { w: 1800, h: 1200 } as const;
+
 export interface RiggleCurveOptions {
   id: number;
   hash: string;
-  /** square canvas side in pixels the wave is measured on */
-  size?: number;
+  /** canvas the wave is measured on, defaulting to the published one */
+  canvas?: { w: number; h: number };
   background?: 0 | 1;
 }
 
-export function riggleCurve({ id, hash, size = 1200, background }: RiggleCurveOptions): RiggleCurve {
+export function riggleCurve({ id, hash, canvas = ART_CANVAS, background }: RiggleCurveOptions): RiggleCurve {
   const t = parseHash(hash);
-  const g = buildGeom(t, size, size, true);
+  const g = buildGeom(t, canvas.w, canvas.h, true);
   const ink = inkOf(t);
   const { stroke, outline } = strokeOf(t, g);
 
@@ -172,7 +181,7 @@ export function riggleCurve({ id, hash, size = 1200, background }: RiggleCurveOp
     background: (background ?? t.bgBit) as 0 | 1,
     type: variantOf(t),
     spectrum: spectrumLabel(t),
-    canvas: { w: size, h: size },
+    canvas: { w: canvas.w, h: canvas.h },
     points,
     light,
     stroke,

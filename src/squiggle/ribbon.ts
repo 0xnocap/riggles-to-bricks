@@ -50,7 +50,8 @@ export interface Ribbon {
 export const RIBBON_PANEL: Record<Scale, { w: number; h: number }> = { small: { w: 48, h: 24 }, large: { w: 64, h: 32 } };
 export const RIBBON_WIDTH: Record<SquiggleType, number> = { Normal: 3, Slinky: 3, Ribbed: 3, Fuzzy: 4, Bold: 7, Pipe: 5 };
 /** margins (studs), sample spacing (studs), plates per slab, most slabs */
-const MX = 4, MZ = 1, STEP = 0.25, SLAB = 3, TOP = 3;
+export const MX = 4, MZ = 1;
+const STEP = 0.25, SLAB = 3, TOP = 3;
 const NB = [1024, -1024, 1, -1];   // key offsets of the 4 neighbours
 const SPEC = new Map(SPECTRUM.map((s, i) => [s.id, i]));
 /** spectrum steps between two colours (black or white against a colour: 1.5) */
@@ -125,11 +126,16 @@ interface Region {
   own: Map<number, Pc>;                  // cell → piece
 }
 
-export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean } = {}): Ribbon {
-  const { w: W, h: H } = RIBBON_PANEL[scale], width = RIBBON_WIDTH[curve.type], r = width / 2, far = 2 * width;
+export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean; panel?: { w: number; h: number }; width?: number } = {}): Ribbon {
+  const { w: W, h: H } = opts.panel ?? RIBBON_PANEL[scale], width = opts.width ?? RIBBON_WIDTH[curve.type], r = width / 2, far = 2 * width;
   const { x0, y0, x1, y1 } = curve.box, bw = Math.max(x1 - x0, 1), bh = Math.max(y1 - y0, 1);
+  // A Squiggle's stroke is always the same fraction of its canvas, so a small
+  // one is capped to keep its loops apart. A riggle's stroke is set by its own
+  // step count and body, so the caller works the width out from the fit and
+  // this cap does not apply.
+  const kCap = opts.width != null ? Infinity : scale === 'small' ? 3 / (curve.canvas.h / 13) : Infinity;
   // the largest scale that fits: every stud of margin given up shrinks the loops, and dense ones fuse
-  const k = Math.min((W - 2 * MX - width) / bw, (H - 2 * MZ - width) / bh, scale === 'small' ? 3 / (curve.canvas.h / 13) : Infinity);
+  const k = Math.min((W - 2 * MX - width) / bw, (H - 2 * MZ - width) / bh, kCap);
   const offset = { x: MX + r + (W - 2 * MX - width - k * bw) / 2, z: MZ + r + (H - 2 * MZ - width - k * bh) / 2 };
   const arc = arcLength(curve.points);
   const line = curve.points.map((p, i) => ({ x: offset.x + (p.x - x0) * k, z: offset.z + (y1 - p.y) * k, s: arc[i] * k }));
