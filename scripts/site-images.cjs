@@ -1,11 +1,11 @@
-// The site's own pictures, rendered by the site: public/og.png (the share image of #1234's Large Frame, 1200×630)
+// The site's own pictures, rendered by the site: public/og.png (the share image of a Large Frame, 1200×630)
 // and public/hero.jpg (that Frame on its wall, for the landing). Needs the dev server: npx vite --port 5180
 //   node scripts/site-images.cjs [id] [--try]   (--try: hero candidates in out/hero-*.jpg, nothing written to public/)
 const { chromium } = require('playwright-core');
 const { exe } = require('./shot.cjs');
 const fs = require('fs');
-const id = +(process.argv.find(a => /^\d+$/.test(a)) ?? 1234), tryOnly = process.argv.includes('--try');
-const HERO = { w: 1120, h: 700, view: { az: -10, el: 5, margin: 0.1 } };   // near front-on, like the stage and og.png
+const id = +(process.argv.find(a => /^\d+$/.test(a)) ?? 13), tryOnly = process.argv.includes('--try');
+const HERO = { w: 1120, h: 700, view: { az: -34, el: 12, margin: 0.07 } };   // three-quarter view: the relief reads as relief
 (async () => {
   const b = await chromium.launch({ executablePath: exe(), args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
   const p = await b.newPage({ viewport: { width: 1400, height: 900 } });

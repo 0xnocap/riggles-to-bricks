@@ -16,24 +16,24 @@ import { SPECTRUM, WHITE } from './spectrum';
 export interface SquiggleInfo {
   id: number | null; hash: string | null;
   original: string;                 // image URL or data URL of the original
-  origin?: 'script' | 'port' | 'image' | 'upload';
+  origin?: 'script' | 'port' | 'image' | 'upload' | 'engine';
   notes?: string[];
 }
 
-export const SITE_NAME = 'Squiggle to Bricks';
-export const SITE_URL = 'https://hs7j4yk4sz-boop.github.io/squiggle-to-bricks/';
-const SOURCE_URL = 'https://github.com/hs7j4yk4sz-boop/squiggle-to-bricks';
-const SECTION: Record<Role, string> = { squiggle: 'Squiggle', display: 'Display' };
+export const SITE_NAME = 'Riggles to Bricks';
+export const SITE_URL = 'https://0xnocap.github.io/riggles-to-bricks/';
+const SOURCE_URL = 'https://github.com/0xnocap/riggles-to-bricks';
+const SECTION: Record<Role, string> = { squiggle: 'Riggle', display: 'Display' };
 const DISPLAY = { frame: 'Frame', floating: 'Floating', backdrop: 'Backdrop' };
 
 // ---------- names and figures ----------
 
-/** "Chromie Squiggle #1234" (or "My Chromie Squiggle" for an upload without a number) */
-export const squiggleName = (src: SquiggleInfo) => (src.id !== null ? `Chromie Squiggle #${src.id}` : 'My Chromie Squiggle');
+/** "Riggle #1234" */
+export const squiggleName = (src: SquiggleInfo) => (src.id !== null ? `Riggle #${src.id}` : 'Riggle');
 
-/** Base of every file name: squiggle-1234-frame-large, squiggle-1234-mosaic-small… */
+/** Base of every file name: riggle-1234-frame-large, riggle-1234-mosaic-small… */
 export const fileBase = (m: SqModel, src: SquiggleInfo) =>
-  `squiggle-${src.id ?? 'upload'}-${m.format === 'mosaic' ? 'mosaic' : m.display ?? 'relief'}-${m.scale}`;
+  `riggle-${src.id ?? 0}-${m.format === 'mosaic' ? 'mosaic' : m.display ?? 'relief'}-${m.scale}`;
 
 /** "Frame · Large", "Mosaic · 96 × 48 studs" */
 export function modelLabel(m: SqModel): string {

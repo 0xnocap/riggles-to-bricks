@@ -17,7 +17,7 @@ export interface Loaded {
   id: number | null;
   hash: string | null;
   features: Record<string, string | number>;
-  origin: 'script' | 'port' | 'image' | 'upload';
+  origin: 'script' | 'port' | 'image' | 'upload' | 'engine';
   original: string;                 // image URL or data URL shown as "Original"
   source: CurveSource | null;       // the recorded circles (script, port), for readCurve
   curve: Curve;
