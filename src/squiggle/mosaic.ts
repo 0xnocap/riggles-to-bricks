@@ -165,45 +165,35 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
       return { w: W, h: H, cells, last, k, stroke: curve.stroke * k };
     }
     let at = 0;
-    // The square wave's ribs, read off how the engine lays them down.
+    // The square wave's ribs, laid down the way the engine lays them.
     //
     // Each stamp is a square the full width of the stroke, filled with the body
-    // colour and OUTLINED a shade lighter, marched along the wave and drawn over
-    // the one before. Two things come out of that, and they are what the art
-    // shows: the edges running with the stroke pile up into one unbroken bright
-    // line down each of its sides, and the leading edges become ticks across it,
-    // upright on a run and flat on a riser.
+    // colour and OUTLINED a shade lighter, marched along the wave and drawn OVER
+    // the one before. Doing the same here, in order, is what makes a corner
+    // right: the later square covers the earlier one, so the rib arriving on top
+    // cuts off the rib underneath instead of gridding across it. Drawing ribs
+    // that only ever add light left both directions showing and crossed.
     //
-    // Both are drawn here, rather than every stamp's whole square. The engine's
-    // outline is a twelfth of the stroke wide; a stud is a fifth of it, so
-    // outlining each stamp in turn buries the body colour under its own ribs.
-    const base = cells.slice();         // body colours, before any rib
-    const bodyAt = (i: number) => base[i];
-    const light = (i: number) => { if (last[i] >= 0 && base[i] !== BLACK) cells[i] = ribOf(bodyAt(i)); };
-
-    // the bright line down both sides of the stroke: every cell of the riggle
-    // that touches the background
-    for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
-      const i = x + z * W;
-      if (last[i] < 0) continue;
-      const edge = x === 0 || z === 0 || x === W - 1 || z === H - 1
-        || last[i - 1] < 0 || last[i + 1] < 0 || last[i - W] < 0 || last[i + W] < 0;
-      if (edge) light(i);
-    }
-
-    // the ticks, square to the way the wave is going, one stamp apart
+    // The edges that run with the stroke pile up into an unbroken bright line
+    // down each side; the leading edges become the ticks across it.
+    const base = cells.slice();                 // body colours, before any rib
     const side = Math.max(2, Math.round(curve.stroke * k));
     const step = Math.max(2, Math.round(side / 3.2));       // engine: one stamp every S/3.2
-    const reach = Math.ceil(side / 2);
-    for (let a = step; a < total; a += step) {
+    for (let a = 0; a <= total + step; a += step) {
       while (at + 1 < s.length && s[at + 1] < a) at++;
-      const lo = Math.max(0, at - 2), hi = Math.min(points.length - 1, at + 2);
-      const across = Math.abs(X[hi] - X[lo]) >= Math.abs(Z[hi] - Z[lo]);
-      const cx = Math.floor(X[at]), cz = Math.floor(Z[at]);
-      for (let n = -reach; n <= reach; n++) {
-        const x = across ? cx : cx + n, z = across ? cz + n : cz;
+      const cx = Math.min(W - 1, Math.max(0, Math.floor(X[at])));
+      const cz = Math.min(H - 1, Math.max(0, Math.floor(Z[at])));
+      const body = base[cx + cz * W];
+      if (body === BLACK) continue;
+      const lit = ribOf(body);
+      const x0 = Math.round(X[at] - side / 2), z0 = Math.round(Z[at] - side / 2);
+      for (let dx = 0; dx < side; dx++) for (let dz = 0; dz < side; dz++) {
+        const x = x0 + dx, z = z0 + dz;
         if (x < 0 || z < 0 || x >= W || z >= H) continue;
-        light(x + z * W);
+        const i = x + z * W;
+        if (last[i] < 0) continue;              // only where the riggle is
+        const edge = dx === 0 || dz === 0 || dx === side - 1 || dz === side - 1;
+        cells[i] = edge ? lit : base[i];        // the fill restores the body, erasing any rib under it
       }
     }
   }
