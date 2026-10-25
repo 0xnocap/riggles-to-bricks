@@ -1,12 +1,11 @@
-// Builds Squiggle models, and traces pictures of Squiggles, off the main
+// Builds riggle models off the main
 // thread. Requests and replies are plain objects (nothing transferred). The
 // curve of the last Squiggles is kept, so the three displays of one size share
 // one ribbon (display.ts caches it per curve).
 import type { Curve } from './curve';
-import { buildRelief } from './display';
 import { curveFromImage, type ImageCurve, type RGBAImage } from './fromImage';
 import type { Display, Format, Scale, SqModel } from './model';
-import { buildMosaic } from './mosaic';
+import { buildRiggleModel } from '../riggle/build';
 
 export interface BuildJob { key: string; curve: Curve; meta: { id: number; hash: string }; format: Format; display: Display | null; scale: Scale; studs?: boolean }
 export type WorkerRequest = { id: number; build: BuildJob } | { id: number; trace: { image: RGBAImage; sid: number | null } };
@@ -24,7 +23,7 @@ export function runBuild(j: BuildJob): SqModel {
     curves.set(j.key, curve);
     while (curves.size > 3) curves.delete(curves.keys().next().value!);
   }
-  return j.format === 'mosaic' ? buildMosaic(curve, j.scale, j.meta) : buildRelief(curve, j.display ?? 'frame', j.scale, j.meta, { studs: !!j.studs });
+  return buildRiggleModel(curve, j.meta, { format: j.format, display: j.display ?? 'frame', scale: j.scale, studs: !!j.studs });
 }
 
 if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {

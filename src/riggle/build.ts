@@ -62,14 +62,21 @@ export interface RiggleBuild {
 
 export interface BuiltRiggle { curve: RiggleCurve; model: SqModel; width: number }
 
+/**
+ * One model from a curve that is already in hand. This is the single place the
+ * riggle fit is applied, so the page, the workers and the scripts all build the
+ * same thing.
+ */
+export function buildRiggleModel(curve: Curve, meta: { id: number; hash: string }, opts: RiggleBuild): SqModel {
+  if (opts.format === 'mosaic') return buildMosaic(curve, opts.scale, meta, RIGGLE_GRID[opts.scale], { square: true });
+  const panel = RIGGLE_PANEL[opts.scale];
+  return buildRelief(curve, opts.display ?? 'frame', opts.scale, meta, {
+    studs: opts.studs, panel, width: ribbonWidthFor(curve, panel), square: true,
+  });
+}
+
 export function buildRiggle(id: number, hash: string, opts: RiggleBuild): BuiltRiggle {
   const curve = riggleCurve({ id, hash });
-  const meta = { id, hash };
-  if (opts.format === 'mosaic') {
-    return { curve, model: buildMosaic(curve, opts.scale, meta, RIGGLE_GRID[opts.scale], { square: true }), width: 0 };
-  }
-  const panel = RIGGLE_PANEL[opts.scale];
-  const width = ribbonWidthFor(curve, panel);
-  const model = buildRelief(curve, opts.display ?? 'frame', opts.scale, meta, { studs: opts.studs, panel, width, square: true });
-  return { curve, model, width };
+  const model = buildRiggleModel(curve, { id, hash }, opts);
+  return { curve, model, width: opts.format === 'mosaic' ? 0 : ribbonWidthFor(curve, RIGGLE_PANEL[opts.scale]) };
 }
