@@ -164,23 +164,47 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
       });
       return { w: W, h: H, cells, last, k, stroke: curve.stroke * k };
     }
-    const reach = Math.ceil(curve.stroke * k / 2) + 1;      // half the stroke, in studs
-    const paint = (x: number, z: number) => {
-      if (x < 0 || z < 0 || x >= W || z >= H) return;
-      const key = x + z * W;
-      if (last[key] < 0) return;                           // only where the riggle is
-      cells[key] = ribOf(cells[key]);
-    };
     let at = 0;
-    for (let a = pitch; a < total; a += pitch) {
+    // The square wave's ribs, read off how the engine lays them down.
+    //
+    // Each stamp is a square the full width of the stroke, filled with the body
+    // colour and OUTLINED a shade lighter, marched along the wave and drawn over
+    // the one before. Two things come out of that, and they are what the art
+    // shows: the edges running with the stroke pile up into one unbroken bright
+    // line down each of its sides, and the leading edges become ticks across it,
+    // upright on a run and flat on a riser.
+    //
+    // Both are drawn here, rather than every stamp's whole square. The engine's
+    // outline is a twelfth of the stroke wide; a stud is a fifth of it, so
+    // outlining each stamp in turn buries the body colour under its own ribs.
+    const base = cells.slice();         // body colours, before any rib
+    const bodyAt = (i: number) => base[i];
+    const light = (i: number) => { if (last[i] >= 0 && base[i] !== BLACK) cells[i] = ribOf(bodyAt(i)); };
+
+    // the bright line down both sides of the stroke: every cell of the riggle
+    // that touches the background
+    for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
+      const i = x + z * W;
+      if (last[i] < 0) continue;
+      const edge = x === 0 || z === 0 || x === W - 1 || z === H - 1
+        || last[i - 1] < 0 || last[i + 1] < 0 || last[i - W] < 0 || last[i + W] < 0;
+      if (edge) light(i);
+    }
+
+    // the ticks, square to the way the wave is going, one stamp apart
+    const side = Math.max(2, Math.round(curve.stroke * k));
+    const step = Math.max(2, Math.round(side / 3.2));       // engine: one stamp every S/3.2
+    const reach = Math.ceil(side / 2);
+    for (let a = step; a < total; a += step) {
       while (at + 1 < s.length && s[at + 1] < a) at++;
-      // which way the wave is going here, from its neighbours a stroke apart
       const lo = Math.max(0, at - 2), hi = Math.min(points.length - 1, at + 2);
-      const dx = Math.abs(X[hi] - X[lo]), dz = Math.abs(Z[hi] - Z[lo]);
+      const across = Math.abs(X[hi] - X[lo]) >= Math.abs(Z[hi] - Z[lo]);
       const cx = Math.floor(X[at]), cz = Math.floor(Z[at]);
-      // running sideways: an upright rib. climbing: a flat one.
-      if (dx >= dz) for (let z = cz - reach; z <= cz + reach; z++) paint(cx, z);
-      else for (let x = cx - reach; x <= cx + reach; x++) paint(x, cz);
+      for (let n = -reach; n <= reach; n++) {
+        const x = across ? cx : cx + n, z = across ? cz + n : cz;
+        if (x < 0 || z < 0 || x >= W || z >= H) continue;
+        light(x + z * W);
+      }
     }
   }
   return { w: W, h: H, cells, last, k, stroke: curve.stroke * k };

@@ -28,7 +28,7 @@ export interface Pixel {
   grey: boolean;
 }
 
-interface Op { x: number; y: number; w: number; h: number; css: string }
+export interface Op { x: number; y: number; w: number; h: number; css: string; stroke?: boolean }
 
 const HSL = /hsl\(\s*([-\d.]+)\s*,\s*([\d.]+)%\s*,\s*([-\d.]+)%\s*\)/;
 
@@ -36,13 +36,18 @@ const HSL = /hsl\(\s*([-\d.]+)\s*,\s*([\d.]+)%\s*,\s*([-\d.]+)%\s*\)/;
 function recorder(out: Op[]) {
   const noop = () => {};
   const grad = () => ({ _grad: true, addColorStop: noop });
-  const ctx: Record<string, unknown> & { _fill: unknown; _tx: number; _ty: number } = {
-    _fill: null, _tx: 0, _ty: 0,
+  const ctx: Record<string, unknown> & { _fill: unknown; _stroke: unknown; _tx: number; _ty: number } = {
+    _fill: null, _stroke: null, _tx: 0, _ty: 0,
     canvas: { width: 0, height: 0 },
     save: noop, restore: noop, beginPath: noop, closePath: noop, clip: noop, fill: noop, stroke: noop,
     moveTo: noop, lineTo: noop, arc: noop, ellipse: noop, rect: noop, quadraticCurveTo: noop,
     bezierCurveTo: noop, drawImage: noop, clearRect: noop, setTransform: noop, scale: noop, rotate: noop,
-    fillText: noop, strokeText: noop, strokeRect: noop,
+    fillText: noop, strokeText: noop,
+    strokeRect(x: number, y: number, w: number, h: number) {
+      // the Accordion's bright square edge lives here
+      const css = ctx._stroke;
+      if (typeof css === 'string') out.push({ x: x + ctx._tx, y: y + ctx._ty, w, h, css, stroke: true });
+    },
     measureText: () => ({ width: 0 }),
     createLinearGradient: grad, createRadialGradient: grad, createPattern: () => null,
     translate(x: number, y: number) { ctx._tx += x; ctx._ty += y; },
@@ -51,11 +56,12 @@ function recorder(out: Op[]) {
       if (typeof css === 'string') out.push({ x: x + ctx._tx, y: y + ctx._ty, w, h, css });
     },
   };
-  for (const k of ['strokeStyle', 'lineWidth', 'lineJoin', 'lineCap', 'miterLimit', 'globalAlpha',
+  for (const k of ['lineWidth', 'lineJoin', 'lineCap', 'miterLimit', 'globalAlpha',
     'globalCompositeOperation', 'filter', 'shadowBlur', 'shadowColor', 'font', 'textAlign', 'textBaseline']) {
     Object.defineProperty(ctx, k, { get: () => '', set: noop });
   }
   Object.defineProperty(ctx, 'fillStyle', { get: () => ctx._fill, set: (v) => { ctx._fill = v; } });
+  Object.defineProperty(ctx, 'strokeStyle', { get: () => ctx._stroke, set: (v) => { ctx._stroke = v; } });
   return ctx as unknown as CanvasRenderingContext2D;
 }
 
@@ -64,10 +70,16 @@ function recorder(out: Op[]) {
  * other body. The charcoal mute the engine lays over each cell is skipped: the
  * bricks carry the colour underneath it.
  */
-export function rigglePixels(t: Traits, w: number, h: number): Pixel[] {
-  if (!t.fuzzy) return [];
+/** Every rectangle the real engine paints, in order, fills and outlines alike. */
+export function recordRiggle(t: Traits, w: number, h: number): Op[] {
   const ops: Op[] = [];
   drawRiggle(recorder(ops), t, w, h, {});
+  return ops;
+}
+
+export function rigglePixels(t: Traits, w: number, h: number): Pixel[] {
+  if (!t.fuzzy) return [];
+  const ops = recordRiggle(t, w, h).filter((o) => !o.stroke);
   const out: Pixel[] = [];
   for (const o of ops) {
     if (o.w === w && o.h === h) continue;              // the background field

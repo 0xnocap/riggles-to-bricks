@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
 import { buildRiggle } from '../src/riggle/build.ts';
 import { riggleCurve } from '../src/riggle/curve.ts';
-import { rigglePixels } from '../src/riggle/pixels.ts';
+import { recordRiggle } from '../src/riggle/pixels.ts';
 import { curveColors } from '../src/squiggle/spectrum.ts';
 import { renderHex } from '../src/core/palette.ts';
 
@@ -35,26 +35,27 @@ function px(png, x, y, [r, g, b]) {
 }
 const rect = (png, x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) px(png, x + i, y + j, c); };
 
-/** the art: the engine's own cells for a Pixelated riggle, else the centre line */
+/** the art, as the real engine paints it: every rectangle it draws, in order */
 function drawArt(png, ox, oy, w, h, curve) {
   rect(png, ox, oy, w, h, hexRGB(curve.background === 1 ? '#CCFF00' : '#000000'));
   const k = Math.min(w / curve.canvas.w, h / curve.canvas.h);
-  const cells = rigglePixels(curve.traits, curve.canvas.w, curve.canvas.h);
-  if (cells.length) {
-    for (const q of cells) {
-      const c = q.grey ? hslRGB(0, 0, q.light) : hslRGB(q.hue, curve.traits.satPct, q.light);
-      const side = Math.max(1, Math.round(q.size * k));
-      rect(png, Math.round(ox + (q.x * k) - side / 2), Math.round(oy + (q.y * k) - side / 2), side, side, c);
-    }
-    return;
+  const css = (c) => {
+    const m = /hsl\(\s*([-\d.]+)\s*,\s*([\d.]+)%\s*,\s*([-\d.]+)%\s*\)/.exec(c);
+    if (m) return hslRGB(((+m[1] % 360) + 360) % 360, +m[2], +m[3]);
+    if (c[0] === '#') return hexRGB(c.length === 4 ? '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] : c);
+    return null;
+  };
+  for (const o of recordRiggle(curve.traits, curve.canvas.w, curve.canvas.h)) {
+    if (o.w === curve.canvas.w && o.h === curve.canvas.h) continue;   // the background field
+    const c = css(o.css);
+    if (!c) continue;
+    const x0 = Math.round(ox + o.x * k), y0 = Math.round(oy + o.y * k);
+    const ww = Math.max(1, Math.round(o.w * k)), hh = Math.max(1, Math.round(o.h * k));
+    if (o.stroke) {
+      for (let i = 0; i < ww; i++) { px(png, x0 + i, y0, c); px(png, x0 + i, y0 + hh - 1, c); }
+      for (let j = 0; j < hh; j++) { px(png, x0, y0 + j, c); px(png, x0 + ww - 1, y0 + j, c); }
+    } else rect(png, x0, y0, ww, hh, c);
   }
-  const r = Math.max(1, (curve.stroke * k) / 2);
-  curve.points.forEach((p, i) => {
-    const cx = ox + p.x * k, cy = oy + p.y * k;
-    const c = curve.traits.spectrum === 'grey' ? hslRGB(0, 0, curve.light[i]) : hslRGB(p.hue, curve.traits.satPct, curve.light[i]);
-    // square stamp, as the engine draws it: flat ends, mitred corners
-    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) px(png, Math.round(cx + dx), Math.round(cy + dy), c);
-  });
 }
 
 /** the model, drawn from its pieces, seen from the front */
