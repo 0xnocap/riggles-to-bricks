@@ -3,6 +3,7 @@
 // exact hue: the colour moves one palette step at a time, never skips one, and
 // each colour runs for a minimum length.
 import { arcLength, type Curve } from './curve';
+import { COLOR_BY_ID } from '../core/palette';
 
 /** BrickLink colour IDs, in spectrum order, with the Squiggle hue each one stands for. */
 export const SPECTRUM: { id: number; name: string; hue: number }[] = [
@@ -103,8 +104,65 @@ export function paletteCoord(hue: number): number {
  * Palette colour (BrickLink ID) of every curve point. `minRun` is the shortest
  * run of one colour along the curve, in pixels.
  */
+/**
+ * The bricks a riggle may be built from: the spectrum, each colour's lighter
+ * and deeper sibling, and the greys. Black is left out, being the usual field.
+ */
+export const RIGGLE_BRICKS = [...new Set([
+  ...SPECTRUM.map(p => p.id), ...Object.values(LIGHT_OF), ...Object.values(DARK_OF), ...GREYS,
+])];
+
+const RGB = new Map<number, [number, number, number]>();
+for (const id of RIGGLE_BRICKS) {
+  const h = (COLOR_BY_ID.get(id)?.hex ?? '#000000').slice(1);
+  RGB.set(id, [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]);
+}
+
+/** hsl as the engine writes it, to rgb */
+export function hslRgb(h: number, s: number, l: number): [number, number, number] {
+  s /= 100; l /= 100;
+  const k = (n: number) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+  const f = (n: number) => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+  return [f(0), f(8), f(4)];
+}
+
+/**
+ * The brick closest to a colour the engine actually painted.
+ *
+ * Matching by hue alone put a riggle's hot magenta on a dusty Magenta brick
+ * and built every pastel piece at full strength, because hue says nothing
+ * about how light or how washed a colour is. Comparing the whole colour picks
+ * the brick that looks like it, and it makes Intensity fall out on its own:
+ * a pale riggle lands on pale bricks because they are the nearest ones.
+ */
+export function nearestBrick(rgb: [number, number, number]): number {
+  let best = RIGGLE_BRICKS[0], bd = Infinity;
+  for (const id of RIGGLE_BRICKS) {
+    const c = RGB.get(id)!;
+    // weighted to taste rather than straight rgb: green carries most of what
+    // the eye reads as brightness, blue the least
+    const d = 3 * (c[0] - rgb[0]) ** 2 + 4 * (c[1] - rgb[1]) ** 2 + 2 * (c[2] - rgb[2]) ** 2;
+    if (d < bd) { bd = d; best = id; }
+  }
+  return best;
+}
+
 export function curveColors(c: Curve, minRun: number): number[] {
   const pts = c.points, s = arcLength(pts);
+  // A riggle knows the whole colour the engine painted, so each point takes the
+  // brick nearest to it and holds it for at least minRun, which keeps a gradient
+  // from flickering between two neighbours. A Squiggle carries only a hue and
+  // walks the spectrum wheel below.
+  if (c.sat != null && c.light?.length === pts.length) {
+    const want = pts.map((p, i) => nearestBrick(hslRgb(p.hue, c.sat!, c.light![i])));
+    const out: number[] = [];
+    let cur = want[0], since = 0;
+    for (let i = 0; i < pts.length; i++) {
+      if (want[i] !== cur && s[i] - since >= minRun) { cur = want[i]; since = s[i]; }
+      out.push(cur);
+    }
+    return out;
+  }
   // A Greyscale riggle walks the grey ramp by lightness. That ramp is a line,
   // not a wheel: it does not wrap from white back to dark.
   const grey = !!c.greyscale && c.light?.length === pts.length;

@@ -174,7 +174,7 @@ function showOriginal(l: Loaded) {
   const img = $<HTMLImageElement>('orig-img');
   // the riggle's own square, not the published wide canvas: beside the model a
   // 3:2 crop is mostly background at the sides
-  img.src = riggleImage(l.hash, l.background, 900, 'square'); img.hidden = false;
+  img.src = riggleImage(l.hash, l.background, 900, 'crop'); img.hidden = false;
   img.alt = `Riggle #${l.id}`;
   $('orig-title').textContent = squiggleName(l);
   $('orig-origin').textContent = ORIGIN;

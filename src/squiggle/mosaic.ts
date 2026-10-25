@@ -6,11 +6,11 @@ import { availableAtLego, elementId } from '../core/lego';
 import { partId, TILE_SIZES, type Piece } from '../core/parts';
 import { arcLength, type Curve } from './curve';
 import type { Pixel } from '../riggle/pixels';
-import { GREYS as GREY_RAMP, greyCoord, paletteCoord } from './spectrum';
+import { GREYS as GREY_RAMP, greyCoord } from './spectrum';
 import { summarize, type Scale, type SqModel } from './model';
 import { nameplateLines } from './nameplate';
 import { endCap } from './ribbon';
-import { BLACK, GREYS, LIGHT_OF, SPECTRUM, WHITE, curveColors, toned } from './spectrum';
+import { BLACK, GREYS, LIGHT_OF, SPECTRUM, WHITE, curveColors, hslRgb, nearestBrick } from './spectrum';
 
 export const MOSAIC_GRID: Record<Scale, [number, number]> = { small: [64, 32], large: [96, 48] };
 const PLATE = 16, MARGIN = 2, BAND = 8, NAMEPLATE: [number, number] = [6, 2];
@@ -84,10 +84,9 @@ export interface PictureOptions {
 }
 
 /** One brick colour for a cell the engine painted: its hue, or its lightness when the riggle has no hue. */
-function brickOf(p: Pixel, tone: 'pastel' | 'deep' | null | undefined): number {
+function brickOf(p: Pixel, sat: number): number {
   if (p.grey) return GREY_RAMP[Math.max(0, Math.min(GREY_RAMP.length - 1, Math.round(greyCoord(p.light))))];
-  const N = SPECTRUM.length;
-  return toned(SPECTRUM[((Math.round(paletteCoord(p.hue)) % N) + N) % N].id, tone);
+  return nearestBrick(hslRgb(p.hue, sat, p.light));
 }
 
 /**
@@ -95,7 +94,7 @@ function brickOf(p: Pixel, tone: 'pastel' | 'deep' | null | undefined): number {
  * covers at least one stud, so a riggle whose cells fall below a stud comes
  * out coarser than the render rather than disappearing.
  */
-function pixelPicture(pixels: Pixel[], W: number, H: number, pad: number, field: number, tone: 'pastel' | 'deep' | null | undefined): MosaicPicture {
+function pixelPicture(pixels: Pixel[], W: number, H: number, pad: number, field: number, sat: number): MosaicPicture {
   // The engine lays this body on a grid of equal squares, so the bricks go on
   // one too. Scaling each cell's own rectangle gave squares of one size and
   // oblongs of another, depending where the rounding fell, and a pixelated
@@ -120,7 +119,7 @@ function pixelPicture(pixels: Pixel[], W: number, H: number, pad: number, field:
   const last = new Int32Array(W * H).fill(-1);
   const cells = new Array<number>(W * H).fill(field);
   pixels.forEach((p, i) => {
-    const col = brickOf(p, tone);
+    const col = brickOf(p, sat);
     const x0 = ox + Math.floor((at[i].gx - gx0) / group) * side;
     const z0 = oz + Math.floor((gz1 - at[i].gz) / group) * side;   // z counts from the front
     for (let dx = 0; dx < side; dx++) for (let dz = 0; dz < side; dz++) {
@@ -144,7 +143,7 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
   const X = points.map(p => W / 2 + (p.x - pcx) * k), Z = points.map(p => H / 2 + (pcy - p.y) * k);
   // the end cap the original draws over everything (Ribbed: rib disc and dense-rib tail, Pipe: filled end dot),
   // from the end point on: its disc is the dot; the colours before it catch up with its colour one step a stud
-  if (opts.pixels?.length) return pixelPicture(opts.pixels, W, H, pad, opts.field ?? BLACK, curve.tone);
+  if (opts.pixels?.length) return pixelPicture(opts.pixels, W, H, pad, opts.field ?? BLACK, curve.sat ?? 100);
 
   const plain = curveColors(curve, 2 / k);
   const colors = opts.square ? plain : endCap(curve, plain, 0, 1 / k);

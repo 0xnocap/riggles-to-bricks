@@ -13,6 +13,7 @@ import {
 } from './engine.js';
 import type { Traits } from './engine.js';
 import { riggleCurve, type RiggleCurve } from './curve';
+import { recordRiggle } from './pixels';
 
 const TABLE = RIGGLES as unknown as {
   generatedAt: string; chainId: number; block: number;
@@ -68,12 +69,41 @@ export function riggleFeatures(t: Traits, background: number): Record<string, st
  * and in a small panel beside the brick model that background reads as empty
  * margin. The drawing itself is identical either way.
  */
-export function riggleImage(hash: string, background: number, width = 900, shape: 'wide' | 'square' = 'wide'): string {
+export function riggleImage(hash: string, background: number, width = 900, shape: 'wide' | 'square' | 'crop' = 'wide'): string {
   if (typeof document === 'undefined') return '';
-  const c = document.createElement('canvas');
-  c.width = width; c.height = shape === 'square' ? width : Math.round((width * 2) / 3);
-  drawRiggle(c.getContext('2d')!, parseHash(hash), c.width, c.height, { bg: background });
-  return c.toDataURL();
+  const t = parseHash(hash);
+  if (shape !== 'crop') {
+    const c = document.createElement('canvas');
+    c.width = width; c.height = shape === 'square' ? width : Math.round((width * 2) / 3);
+    drawRiggle(c.getContext('2d')!, t, c.width, c.height, { bg: background });
+    return c.toDataURL();
+  }
+  // Cropped to what the engine actually paints. The riggle is composed inside a
+  // square with a generous margin of its own, so in a small panel beside the
+  // model most of the picture is empty field. The bounds come from the rectangles
+  // the engine paints, not from the wave's own line, so a Pixelated riggle's
+  // scattered cells and a Smoking one's vapour are inside them too.
+  const S = 1400;
+  const full = document.createElement('canvas');
+  full.width = S; full.height = S;
+  drawRiggle(full.getContext('2d')!, t, S, S, { bg: background });
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const o of recordRiggle(t, S, S)) {
+    if (o.w === S && o.h === S) continue;                 // the field itself
+    x0 = Math.min(x0, o.x); y0 = Math.min(y0, o.y);
+    x1 = Math.max(x1, o.x + o.w); y1 = Math.max(y1, o.y + o.h);
+  }
+  if (!Number.isFinite(x0)) return full.toDataURL();
+  const pad = Math.round(S * 0.03);
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+  x1 = Math.min(S, x1 + pad); y1 = Math.min(S, y1 + pad);
+  const sw = Math.max(1, x1 - x0), sh = Math.max(1, y1 - y0);
+  const out = document.createElement('canvas');
+  out.width = width; out.height = Math.max(1, Math.round((width * sh) / sw));
+  const x = out.getContext('2d')!;
+  x.imageSmoothingEnabled = false;
+  x.drawImage(full, x0, y0, sw, sh, 0, 0, out.width, out.height);
+  return out.toDataURL();
 }
 
 export interface LoadedRiggle {

@@ -1,6 +1,6 @@
 // Lab: the art and the bricks on the SAME grid, so colour blocks can be compared
 // stud for stud. Art on top, bricks below, one stud = one cell in both.
-//   npx tsx scripts/overlay-lab.mts 13
+//   npx tsx scripts/overlay-lab.mts 13 [relief|mosaic]
 import { writeFileSync, readFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
 import { riggleCurve } from '../src/riggle/curve';
@@ -11,10 +11,11 @@ import { renderHex } from '../src/core/palette';
 
 const D = JSON.parse(readFileSync(new URL('../src/data/riggles.json', import.meta.url), 'utf8'));
 const id = Number(process.argv[2] ?? 13);
+const fmt = (process.argv[3] === 'relief' ? 'relief' : 'mosaic') as 'relief' | 'mosaic';
 const CELL = 16;
 const c = riggleCurve({ id, hash: D.riggles[id].h });
 const pic = mosaicPicture(c, 'large', RIGGLE_GRID.large, { square: true, field: c.panel });
-const { model } = buildRiggle(id, D.riggles[id].h, { format: 'mosaic', scale: 'large' });
+const { model } = buildRiggle(id, D.riggles[id].h, { format: fmt, display: 'frame', scale: 'large' });
 
 const hex = (h: string) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 const hsl = (h: number, s: number, l: number) => {
@@ -48,16 +49,18 @@ for (const o of recordRiggle(c.traits, c.canvas.w, c.canvas.h)) {
   const b = o.css2 ? parse(o.css2) ?? a : a;
   const [sx, sz] = toStud(o.x, o.y);
   const w = Math.max(1, o.w * k), h = Math.max(1, o.h * k);
-  const X = Math.round(sx * CELL), Y = Math.round((sz - h) * CELL);
+  // sz counts up from the front, as the brick grid does, so the screen row is
+  // measured from the top: drawing at sz directly puts the art upside down
+  const X = Math.round(sx * CELL), Y = Math.round((H - sz) * CELL);
   const PW = Math.round(w * CELL), PH = Math.round(h * CELL);
   if (a === b || !o.css2) { rect(X, Y, PW, PH, a); continue; }
   // ramp across the rect along the gradient's own direction, as the engine does
   const [g0x, g0y] = toStud(o.gx0 ?? o.x, o.gy0 ?? o.y);
   const [g1x, g1y] = toStud(o.gx1 ?? o.x + o.w, o.gy1 ?? o.y);
-  const dx = (g1x - g0x) * CELL, dy = (g1y - g0y) * CELL;
+  const dx = (g1x - g0x) * CELL, dy = ((H - g1y) - (H - g0y)) * CELL;
   const len2 = dx * dx + dy * dy || 1;
   for (let j = 0; j < PH; j++) for (let i = 0; i < PW; i++) {
-    const t = Math.max(0, Math.min(1, ((X + i - g0x * CELL) * dx + (Y + j - g0y * CELL) * dy) / len2));
+    const t = Math.max(0, Math.min(1, ((X + i - g0x * CELL) * dx + (Y + j - (H - g0y) * CELL) * dy) / len2));
     put(X + i, Y + j, [0, 1, 2].map((n) => Math.round(a[n] + (b[n] - a[n]) * t)));
   }
 }
@@ -67,13 +70,20 @@ for (let z = 0; z <= H; z++) for (let x = 0; x < W * CELL; x++) put(x, z * CELL,
 
 // THE BRICKS
 const oy = H * CELL + 10;
+// the relief is built on its own panel, so place it by its own extent
+let bx = Infinity, bz = Infinity;
+for (const p of model.pieces) { bx = Math.min(bx, p.x); bz = Math.min(bz, p.z); }
+let tx = 0, tz = 0;
+for (const p of model.pieces) { tx = Math.max(tx, p.x + p.w - bx); tz = Math.max(tz, p.z + p.d - bz); }
+const shiftX = Math.round((W - tx) / 2) - bx, shiftZ = Math.round((H - tz) / 2) - bz;
 for (const p of [...model.pieces].sort((a, b) => a.y - b.y)) {
+  if (p.role !== 'squiggle') continue;          // just the riggle, not its frame
   const col = hex(renderHex(p.c));
-  const sx = p.x * CELL, sy = oy + (H - p.z - p.d) * CELL;
+  const sx = (p.x + shiftX) * CELL, sy = oy + (H - (p.z + shiftZ) - p.d) * CELL;
   rect(sx, sy, p.w * CELL, p.d * CELL, col);
   const e = col.map((v) => Math.max(0, v - 40));
   for (let i = 0; i < p.w * CELL; i++) { put(sx + i, sy, e); put(sx + i, sy + p.d * CELL - 1, e); }
   for (let j = 0; j < p.d * CELL; j++) { put(sx, sy + j, e); put(sx + p.w * CELL - 1, sy + j, e); }
 }
-writeFileSync(new URL(`../out/overlay-${id}.png`, import.meta.url), PNG.sync.write(png));
-console.log(`out/overlay-${id}.png  art on top, bricks below, same stud grid (${W}x${H}), ${CELL}px a stud`);
+writeFileSync(new URL(`../out/overlay-${id}-${fmt}.png`, import.meta.url), PNG.sync.write(png));
+console.log(`out/overlay-${id}-${fmt}.png  art on top, bricks below, same stud grid (${W}x${H}), ${CELL}px a stud`);

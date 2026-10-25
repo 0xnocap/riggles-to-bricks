@@ -20,6 +20,8 @@ export interface Curve {
   light?: number[];
   /** the piece's Intensity: a shade lighter, a shade darker, or as the spectrum is */
   tone?: 'pastel' | 'deep' | null;
+  /** saturation the engine paints with, 0 to 100: with hue and light, the whole colour */
+  sat?: number;
   type: SquiggleType;
   spectrum: string;            // Art Blocks feature, e.g. "Normal", "HyperRainbow"
   canvas: { w: number; h: number };
