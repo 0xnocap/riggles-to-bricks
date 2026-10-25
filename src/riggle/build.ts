@@ -100,13 +100,15 @@ export function buildRiggleModel(curve: Curve, meta: { id: number; hash: string 
   if (opts.format === 'mosaic') {
     // A Pixelated riggle brings its own cells; every other body follows its
     // stroke. The traits ride on the curve, and survive the trip to a worker.
-    const t = (curve as Partial<RiggleCurve>).traits;
+    const rc = curve as Partial<RiggleCurve>;
+    const t = rc.traits;
     const pixels = t ? rigglePixels(t, curve.canvas.w, curve.canvas.h) : [];
-    return buildMosaic(curve, opts.scale, meta, RIGGLE_GRID[opts.scale], { square: true, ribs: RIGGLE_RIBS, pixels });
+    return buildMosaic(curve, opts.scale, meta, RIGGLE_GRID[opts.scale], { square: true, ribs: RIGGLE_RIBS, pixels, field: rc?.panel, hollow: rc?.traits?.legendary === 'outline' });
   }
   const panel = RIGGLE_PANEL[opts.scale];
   return buildRelief(curve, opts.display ?? 'frame', opts.scale, meta, {
     studs: opts.studs, panel, width: ribbonWidthFor(curve, panel), square: true,
+    field: (curve as Partial<RiggleCurve>).panel,
   });
 }
 

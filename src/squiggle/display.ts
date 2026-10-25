@@ -201,16 +201,16 @@ const tight = (ms: [string, number, number][]) => {
 
 // ---- Frame ----
 
-function frame(rb: Ribbon, want: { w: number; h: number }) {
+function frame(rb: Ribbon, want: { w: number; h: number }, field: number) {
   const { w: W, h: H } = rb.panel, OW = W + 2 * RING, OH = H + 2 * RING, K = kit();
   const TECH = lengths('technic', 1, BLACK), CAP = lengths('tile', 2, BLACK).filter(l => l >= 2);
   // backing, its joints off the frame's rows and the panel's edge; the white panel's off the backing's
   const edgeX = new Set([1, 2, W + 2, W + 3]), edgeZ = new Set([1, 2, H + 2, H + 3]);
   const backRects = plates(0, 0, OW, OH, BLACK, { v: x => +edgeX.has(x), h: (_, z) => +edgeZ.has(z) });
-  const bl = linesOf(backRects), panelRects = plates(RING, RING, W, H, WHITE, bl);
+  const bl = linesOf(backRects), panelRects = plates(RING, RING, W, H, field, bl);
   const back = K.put(backRects, 'plate', 0, BLACK);
   K.step(back, `Lay the ${back.length} black backing plates edge to edge, studs up: the white panel and the frame on top join them.`);
-  const panel = K.put(panelRects, 'plate', 1, WHITE);
+  const panel = K.put(panelRects, 'plate', 1, field);
   K.step(panel);
 
   // hanging points near the top corners, spacers near the bottom ones: Technic 1×2 along z, holes along x
@@ -534,7 +534,14 @@ function advice(grams: number): string {
 
 const ribbons = new WeakMap<Curve, Map<string, Ribbon>>();
 /** the ribbon, built once per curve, scale and look: the three displays share it */
-type RibbonFit = { panel?: { w: number; h: number }; width?: number; square?: boolean };
+type RibbonFit = {
+  panel?: { w: number; h: number };
+  width?: number;
+  square?: boolean;
+  /** the brick the display's own field is built in: a riggle sits on its own
+   *  background rather than a white panel. Defaults to white, as a Squiggle does. */
+  field?: number;
+};
 
 function ribbonOf(curve: Curve, scale: Scale, studs: boolean, fit: RibbonFit = {}): Ribbon {
   let m = ribbons.get(curve);
@@ -547,7 +554,7 @@ function ribbonOf(curve: Curve, scale: Scale, studs: boolean, fit: RibbonFit = {
 export function buildRelief(curve: Curve, display: Display, scale: Scale, meta: { id: number; hash: string }, opts: { studs?: boolean } & RibbonFit = {}): SqModel {
   const rb = ribbonOf(curve, scale, !!opts.studs, { panel: opts.panel, width: opts.width, square: opts.square });
   const want = opts.panel ?? RIBBON_PANEL[scale];
-  const b = display === 'frame' ? frame(rb, want) : standing(rb, display === 'backdrop');
+  const b = display === 'frame' ? frame(rb, want, opts.field ?? WHITE) : standing(rb, display === 'backdrop');
   const panel = { w: rb.panel.w, h: rb.panel.h };
   const { pieces, steps, stepNotes } = b.K, root = new Set(b.root);
   const ck = checkModel(pieces, { root: (_, i) => root.has(i), base: (_, i) => root.has(i) });

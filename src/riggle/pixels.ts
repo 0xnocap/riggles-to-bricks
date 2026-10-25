@@ -35,7 +35,11 @@ const HSL = /hsl\(\s*([-\d.]+)\s*,\s*([\d.]+)%\s*,\s*([-\d.]+)%\s*\)/;
 /** A 2D context that paints nothing and remembers every solid rectangle. */
 function recorder(out: Op[]) {
   const noop = () => {};
-  const grad = () => ({ _grad: true, addColorStop: noop });
+  const grad = () => {
+    const g: { _grad: true; stops: string[]; addColorStop: (o: number, css: string) => void } =
+      { _grad: true, stops: [], addColorStop: (_o, css) => { g.stops.push(css); } };
+    return g;
+  };
   const ctx: Record<string, unknown> & { _fill: unknown; _stroke: unknown; _tx: number; _ty: number } = {
     _fill: null, _stroke: null, _tx: 0, _ty: 0,
     canvas: { width: 0, height: 0 },
@@ -52,7 +56,11 @@ function recorder(out: Op[]) {
     createLinearGradient: grad, createRadialGradient: grad, createPattern: () => null,
     translate(x: number, y: number) { ctx._tx += x; ctx._ty += y; },
     fillRect(x: number, y: number, w: number, h: number) {
-      const css = ctx._fill;
+      const f = ctx._fill;
+      // a gradient fill is recorded by its first stop: enough to know what the
+      // engine painted there, which is all a reader of these ops needs
+      const css = typeof f === 'string' ? f
+        : (f as { _grad?: true; stops?: string[] })?._grad ? (f as { stops: string[] }).stops[0] : null;
       if (typeof css === 'string') out.push({ x: x + ctx._tx, y: y + ctx._ty, w, h, css });
     },
   };

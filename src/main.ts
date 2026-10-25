@@ -86,6 +86,10 @@ async function start(job: () => Promise<Loaded>, label: string, key: string, url
   if (kept.size > 8) kept.delete(kept.keys().next().value!);
   shownKey = key;
   loaded = l; builds = buildAll(l); model = null;
+  // A Pixelated riggle is a constellation of separate cells, so there is no
+  // ribbon to raise: the Relief would quietly build it solid, which is the one
+  // thing it is not. Open it on the Mosaic, which carries it.
+  if (l.traits?.fuzzy) choice.format = 'mosaic';
   showOriginal(l);
   await showChoice();
 }

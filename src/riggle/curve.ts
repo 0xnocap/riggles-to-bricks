@@ -15,6 +15,7 @@
 import { parseHash, buildGeom, cumOf, typeLabel, spectrumLabel } from './engine.js';
 import type { Traits, Geom } from './engine.js';
 import type { Curve, CurvePoint, SquiggleType } from '../squiggle/curve';
+import { BLACK, SPECTRUM, WHITE, paletteCoord } from '../squiggle/spectrum';
 
 /** Hue span constant, engine.js:8. The pixel test guards this against drift. */
 const COLORSPAN = 7000;
@@ -26,6 +27,9 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const wrap = (v: number) => ((v % 255) + 255) % 255;
 
 export interface Ink { hue: number; light: number; grey: boolean }
+
+/** Closest brick to volt, the collection's other background (#CCFF00). */
+export const VOLT_BRICK = 34;        // Lime, #BBE90B
 
 /**
  * The colour the engine paints at arc parameter `tt` (0 at the start of the
@@ -100,6 +104,8 @@ export function bodyLightOf(t: Traits): number {
 }
 
 export interface RiggleCurve extends Curve {
+  /** the brick the art's own background is built in */
+  panel: number;
   hash: string;
   traits: Traits;
   /** background the chain picked for this riggle: 0 black, 1 volt */
@@ -123,6 +129,24 @@ export interface RiggleCurveOptions {
   /** canvas the wave is measured on, defaulting to the published one */
   canvas?: { w: number; h: number };
   background?: 0 | 1;
+}
+
+/**
+ * The brick the riggle's own background is built in, so the model sits on the
+ * field the art sits on instead of a white panel.
+ *
+ * Black and volt are the two the chain picks. An Inverted riggle is the
+ * exception: its field is the piece's own anchor colour, the colour its palette
+ * starts on, so that is matched to the nearest brick of the spectrum.
+ */
+export function panelBrickOf(t: Traits, background: number): number {
+  if (t.legendary === 'inverted') {
+    const anchor = inkOf({ ...t, legendary: 'none' } as Traits)(0);
+    if (anchor.grey) return anchor.light > 60 ? WHITE : BLACK;
+    const n = SPECTRUM.length;
+    return SPECTRUM[((Math.round(paletteCoord(anchor.hue)) % n) + n) % n].id;
+  }
+  return background === 1 ? VOLT_BRICK : BLACK;
 }
 
 export function riggleCurve({ id, hash, canvas = ART_CANVAS, background }: RiggleCurveOptions): RiggleCurve {
@@ -178,6 +202,7 @@ export function riggleCurve({ id, hash, canvas = ART_CANVAS, background }: Riggl
     hash,
     traits: t,
     background: (background ?? t.bgBit) as 0 | 1,
+    panel: panelBrickOf(t, background ?? t.bgBit),
     type: variantOf(t),
     greyscale: t.spectrum === 'grey',
     spectrum: spectrumLabel(t),

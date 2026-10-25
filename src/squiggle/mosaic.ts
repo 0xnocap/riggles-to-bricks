@@ -56,6 +56,21 @@ export interface PictureOptions {
    * ribbon, the one thing it is not.
    */
   pixels?: Pixel[];
+  /**
+   * The brick the field behind the riggle is built in. Black unless the riggle
+   * says otherwise: the chain picks black or volt per piece, and an Inverted
+   * one sits on its own anchor colour, so the model sits on the field the art
+   * sits on. It can be a spectrum colour, so what counts as field is read off
+   * the picture's `last`, never off a tile's colour.
+   */
+  field?: number;
+  /**
+   * Hollow the riggle out, leaving a contour one stud thick: the Outline
+   * legendary draws the wave and then fills its inside with the background,
+   * so what you see is a thin edge. The engine's contour is about a tenth of
+   * the stroke, under a stud, and one stud is the thinnest a brick goes.
+   */
+  hollow?: boolean;
 }
 
 /** One brick colour for a cell the engine painted: its hue, or its lightness when the riggle has no hue. */
@@ -70,7 +85,7 @@ function brickOf(p: Pixel): number {
  * covers at least one stud, so a riggle whose cells fall below a stud comes
  * out coarser than the render rather than disappearing.
  */
-function pixelPicture(pixels: Pixel[], W: number, H: number, pad: number): MosaicPicture {
+function pixelPicture(pixels: Pixel[], W: number, H: number, pad: number, field: number): MosaicPicture {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const p of pixels) {
     x0 = Math.min(x0, p.x - p.size / 2); x1 = Math.max(x1, p.x + p.size / 2);
@@ -79,7 +94,7 @@ function pixelPicture(pixels: Pixel[], W: number, H: number, pad: number): Mosai
   const k = Math.min((W - 2 * pad) / Math.max(1, x1 - x0), (H - 2 * pad) / Math.max(1, y1 - y0));
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   const last = new Int32Array(W * H).fill(-1);
-  const cells = new Array<number>(W * H).fill(BLACK);
+  const cells = new Array<number>(W * H).fill(field);
   pixels.forEach((p, i) => {
     const col = brickOf(p), half = (p.size * k) / 2;
     const mx = W / 2 + (p.x - cx) * k, mz = H / 2 + (cy - p.y) * k;
@@ -103,7 +118,7 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
   const X = points.map(p => W / 2 + (p.x - pcx) * k), Z = points.map(p => H / 2 + (pcy - p.y) * k);
   // the end cap the original draws over everything (Ribbed: rib disc and dense-rib tail, Pipe: filled end dot),
   // from the end point on: its disc is the dot; the colours before it catch up with its colour one step a stud
-  if (opts.pixels?.length) return pixelPicture(opts.pixels, W, H, pad);
+  if (opts.pixels?.length) return pixelPicture(opts.pixels, W, H, pad, opts.field ?? BLACK);
 
   const plain = curveColors(curve, 2 / k);
   const colors = opts.square ? plain : endCap(curve, plain, 0, 1 / k);
@@ -117,7 +132,7 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
         if (inside) last[x + z * W] = i;
       }
   });
-  const cells = [...last].map(i => (i < 0 ? BLACK : colors[i]));
+  const cells = [...last].map(i => (i < 0 ? (opts.field ?? BLACK) : colors[i]));
   // Accordion ribs.
   //
   // The engine stamps this body as a row of squares along the wave, and what
@@ -184,7 +199,7 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
       const cx = Math.min(W - 1, Math.max(0, Math.floor(X[at])));
       const cz = Math.min(H - 1, Math.max(0, Math.floor(Z[at])));
       const body = base[cx + cz * W];
-      if (body === BLACK) continue;
+      if (last[cx + cz * W] < 0) continue;
       const lit = ribOf(body);
       const x0 = Math.round(X[at] - side / 2), z0 = Math.round(Z[at] - side / 2);
       for (let dx = 0; dx < side; dx++) for (let dz = 0; dz < side; dz++) {
@@ -194,6 +209,40 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
         if (last[i] < 0) continue;              // only where the riggle is
         const edge = dx === 0 || dz === 0 || dx === side - 1 || dz === side - 1;
         cells[i] = edge ? lit : base[i];        // the fill restores the body, erasing any rib under it
+      }
+    }
+  }
+  if (opts.hollow) {
+    const filled = cells.slice();                 // colours before the inside is emptied
+    const solidAt = (x: number, z: number) => filled[x + z * W];
+    // The Outline legendary: every cell of the riggle that does not touch the
+    // background is inside it, and the engine fills the inside with the
+    // background, leaving a contour. A stud is the thinnest that contour goes.
+    for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
+      const i = x + z * W;
+      if (last[i] < 0) continue;
+      const open = x === 0 || z === 0 || x === W - 1 || z === H - 1
+        || last[i - 1] < 0 || last[i + 1] < 0 || last[i - W] < 0 || last[i + W] < 0;
+      if (!open) cells[i] = opts.field ?? BLACK;
+    }
+    // Square the corners. Hollowing can pinch the contour down to two cells
+    // that meet only at their corner, which reads as a diagonal and, in bricks,
+    // is not a join at all. Where a 2x2 holds one diagonal pair of contour and
+    // one of background, the contour gets the cell that turns it into a right
+    // angle.
+    const bg = opts.field ?? BLACK;
+    const solid = (x: number, z: number) =>
+      x >= 0 && z >= 0 && x < W && z < H && last[x + z * W] >= 0 && cells[x + z * W] !== bg;
+    for (let z = 0; z + 1 < H; z++) for (let x = 0; x + 1 < W; x++) {
+      const a = solid(x, z), b = solid(x + 1, z), c = solid(x, z + 1), d = solid(x + 1, z + 1);
+      if (a === d && b === c && a !== b) {
+        // the pair to fill in is whichever diagonal is empty, and only where
+        // the riggle actually runs
+        const [p1, p2]: [number, number][] = a ? [[x + 1, z], [x, z + 1]] : [[x, z], [x + 1, z + 1]];
+        for (const [px, pz] of [p1, p2]) {
+          const i = px + pz * W;
+          if (last[i] >= 0) { cells[i] = solidAt(px, pz); break; }
+        }
       }
     }
   }
@@ -558,6 +607,7 @@ function tileOnBase(pic: MosaicPicture, np: Rect) {
 }
 
 export function buildMosaic(curve: Curve, scale: Scale, meta: { id: number; hash: string }, grid?: [number, number], opts: PictureOptions = {}): SqModel {
+  const field = opts.field ?? BLACK;
   const want = grid ?? MOSAIC_GRID[scale];
   const pic = mosaicPicture(curve, scale, grid, opts), { w: W, h: H } = pic;
   // the nameplate: a black 2×6 tile in the bottom-right corner of the margin
@@ -567,10 +617,19 @@ export function buildMosaic(curve: Curve, scale: Scale, meta: { id: number; hash
   const base = xs.slice(0, -1).flatMap((x, i) => zs[i].slice(0, -1).map((z, j) => ({ x, z, w: xs[i + 1] - x, d: zs[i][j + 1] - z })));
   for (const { x, z, w, d } of base.sort((a, b) => a.z - b.z || a.x - b.x)) {
     steps[0].push(pieces.length);
+    // the base is covered by tiles, so it stays black whatever the field is:
+    // volt's Lime does not come in plates this big
     pieces.push({ x, z, y: 0, h: 1, w, d, c: BLACK, kind: 'plate', part: partId('plate', w, d), group: 'base', role: 'display' });
   }
   // the tiles in bands of rows, front to back, then the nameplate
-  const tile = (r: Rect): Piece => ({ x: r.x, z: r.z, y: 1, h: 1, w: r.w, d: r.d, c: r.c, kind: 'tile', part: partId('tile', r.w, r.d), role: r.c === BLACK ? 'display' : 'squiggle' });
+  // A tile belongs to the field when it is the field's colour. Reading that off
+  // the picture instead looks safer but is not: tiles bridging a base plate seam
+  // are recoloured after the picture is made, so the two disagree.
+  //
+  // Volt builds its field in Lime, which is also a spectrum colour, but a riggle
+  // never wears both: the chain only picks volt when the piece's hues stay clear
+  // of the yellow-greens, which is what voltOk tests for.
+  const tile = (r: Rect): Piece => ({ x: r.x, z: r.z, y: 1, h: 1, w: r.w, d: r.d, c: r.c, kind: 'tile', part: partId('tile', r.w, r.d), role: r.c === field ? 'display' : 'squiggle' });
   const bands = new Map<number, number[]>();
   for (const r of rects) {
     if (r.fixed) continue;
@@ -589,7 +648,7 @@ export function buildMosaic(curve: Curve, scale: Scale, meta: { id: number; hash
   let overlap = 0;
   pieces.forEach((p, i) => { if (p.y === 1) for (let a = 0; a < p.w; a++) for (let b = 0; b < p.d; b++) { const k = p.x + a + (p.z + b) * W; if (own[k] >= 0) overlap++; own[k] = i; } });
   const covered = own.every(v => v >= 0) && !overlap && pieces.filter(p => p.y === 0).reduce((n, p) => n + p.w * p.d, 0) === W * H;
-  const lit = cells.map((c, k) => (c === BLACK ? null : [k % W, Math.floor(k / W)])).filter((v): v is number[] => !!v);
+  const lit = cells.map((c, k) => (c === field ? null : [k % W, Math.floor(k / W)])).filter((v): v is number[] => !!v);
   const m = lit.length ? [Math.min(...lit.map(v => v[0])), W - 1 - Math.max(...lit.map(v => v[0])), Math.min(...lit.map(v => v[1])), H - 1 - Math.max(...lit.map(v => v[1]))] : [W, W, H, H];
   const across = bridgedBy(seams, own), short = across.filter((n, i) => n < seams[i].need).length;
   const bare = own.filter(v => v < 0).length, sides = ['left', 'right', 'bottom', 'top'], near = m.indexOf(Math.min(...m));
@@ -605,7 +664,7 @@ export function buildMosaic(curve: Curve, scale: Scale, meta: { id: number; hash
       },
       {
         name: 'Room around the Squiggle', ok: Math.min(...m) >= MARGIN,
-        detail: Math.min(...m) >= MARGIN ? `At least ${MARGIN} studs of black between the Squiggle and every edge` : `Only ${plural(m[near], 'stud')} of black between the Squiggle and the ${sides[near]} edge`,
+        detail: Math.min(...m) >= MARGIN ? `At least ${MARGIN} studs of background between the riggle and every edge` : `Only ${plural(m[near], 'stud')} of background between the riggle and the ${sides[near]} edge`,
       },
       {
         name: 'Base plates held together', ok: !short,
