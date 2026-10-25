@@ -94,11 +94,10 @@ export function colourParam(t: Traits, cum: number[], waveLen: number): (arc: nu
   };
 }
 
-/** The engine's lightness channel for the body, and for an accordion rib (engine.js:292, :521-522). */
+/** The engine's lightness channel for the body (engine.js:292, :521). */
 export function bodyLightOf(t: Traits): number {
   return t.ribbed && !t.bold ? 46 : 50;
 }
-export const RIB_LIGHT = 72;
 
 export interface RiggleCurve extends Curve {
   hash: string;
@@ -137,10 +136,12 @@ export function riggleCurve({ id, hash, canvas = ART_CANVAS, background }: Riggl
   const cum = cumOf(V);
   const waveLen = cum[cum.length - 1] || 1;
 
-  // Accordion stamps squares every S/3.2 along the wave (engine.js:518); those
-  // square edges are its ribs.
-  const ribPitch = t.ribbed && !t.bold ? g.S / 3.2 : 0;
-  let nextRib = ribPitch;
+  // Accordion ribs are not marked per point. The engine stamps its squares
+  // every S/3.2 along the wave, which is about a stud and a half on the large
+  // mosaic and under one stud on some riggles, so a per point flag would only
+  // feed sub-stud noise to a builder. The mosaic sets its own buildable pitch
+  // from arc length instead, and the raised ribbon, which is three to seven
+  // studs wide, carries no ribs at all: there is no resolution for them.
 
   const param = colourParam(t, cum, waveLen);
   const bodyL = bodyLightOf(t);
@@ -154,14 +155,12 @@ export function riggleCurve({ id, hash, canvas = ART_CANVAS, background }: Riggl
     const a = V[seg], b = V[seg + 1];
     const span = Math.max(1e-6, cum[seg + 1] - cum[seg]);
     const u = clamp((s - cum[seg]) / span, 0, 1);
-    const ribHere = !!ribPitch && s >= nextRib;
-    const c = ink(param(s, seg), ribHere ? RIB_LIGHT : bodyL);
+    const c = ink(param(s, seg), bodyL);
     const p: CurvePoint = {
       x: a.x + (b.x - a.x) * u,
       y: a.y + (b.y - a.y) * u,
       hue: c.hue,
     };
-    if (ribHere) { p.rib = true; nextRib += ribPitch; }
     if (s === 0) p.end = true;
     points.push(p);
     light.push(c.light);
@@ -180,6 +179,7 @@ export function riggleCurve({ id, hash, canvas = ART_CANVAS, background }: Riggl
     traits: t,
     background: (background ?? t.bgBit) as 0 | 1,
     type: variantOf(t),
+    greyscale: t.spectrum === 'grey',
     spectrum: spectrumLabel(t),
     canvas: { w: canvas.w, h: canvas.h },
     points,

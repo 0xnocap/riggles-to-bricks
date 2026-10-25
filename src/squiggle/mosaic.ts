@@ -8,7 +8,7 @@ import { arcLength, type Curve } from './curve';
 import { summarize, type Scale, type SqModel } from './model';
 import { nameplateLines } from './nameplate';
 import { endCap } from './ribbon';
-import { BLACK, SPECTRUM, WHITE, curveColors } from './spectrum';
+import { BLACK, GREYS, SPECTRUM, WHITE, curveColors } from './spectrum';
 
 export const MOSAIC_GRID: Record<Scale, [number, number]> = { small: [64, 32], large: [96, 48] };
 const PLATE = 16, MARGIN = 2, BAND = 8, NAMEPLATE: [number, number] = [6, 2];
@@ -87,6 +87,8 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
     // turn of the sweep the riggle is already doing rather than a foreign colour
     const ribOf = (c: number) => {
       if (ribSpec.colour !== 'step') return ribSpec.colour;
+      const g = GREYS.indexOf(c);
+      if (g >= 0) return GREYS[(g + 1) % GREYS.length];
       const i = SPECTRUM.findIndex(v => v.id === c);
       return i < 0 ? c : SPECTRUM[(i + 1) % SPECTRUM.length].id;
     };

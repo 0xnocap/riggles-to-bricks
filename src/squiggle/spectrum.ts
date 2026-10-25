@@ -19,7 +19,27 @@ export const SPECTRUM: { id: number; name: string; hue: number }[] = [
   { id: 47, name: 'Dark Pink', hue: 325 },     // pink
 ];
 export const WHITE = 1, BLACK = 11;
-export const SQUIGGLE_COLORS = [...SPECTRUM.map(s => s.id), WHITE, BLACK];
+
+/**
+ * The greys a Greyscale riggle is built from, darkest first.
+ *
+ * Such a riggle has no hue at all: its engine answers hsl(0, 0%, L), and hue 0
+ * is Red, which is how every Greyscale riggle came out a solid red piece.
+ * Lightness carries the whole drawing, so it maps here instead. Black is left
+ * out on purpose: it is the mosaic's own background, and the engine keeps a
+ * stroke well clear of the background so it always reads.
+ */
+export const GREYS = [85, 86, 1];   // Dark Bluish Gray, Light Bluish Gray, White
+
+/** The engine's greyscale lightness runs 38 to 92 (engine.js:631). */
+const GREY_LO = 38, GREY_HI = 92;
+
+/** position of a lightness on the grey ramp, 0 to GREYS.length - 1 */
+export function greyCoord(light: number): number {
+  const t = Math.max(0, Math.min(1, (light - GREY_LO) / (GREY_HI - GREY_LO)));
+  return t * (GREYS.length - 1);
+}
+export const SQUIGGLE_COLORS = [...SPECTRUM.map(s => s.id), ...GREYS, WHITE, BLACK];
 const N = SPECTRUM.length;
 
 /** position of a hue on the palette wheel: anchor k at k, linear in between (0..N) */
@@ -38,13 +58,20 @@ export function paletteCoord(hue: number): number {
  */
 export function curveColors(c: Curve, minRun: number): number[] {
   const pts = c.points, s = arcLength(pts);
-  // unwrapped palette coordinate along the curve (hue steps are small between points)
+  // A Greyscale riggle walks the grey ramp by lightness. That ramp is a line,
+  // not a wheel: it does not wrap from white back to dark.
+  const grey = !!c.greyscale && c.light?.length === pts.length;
+  const ramp = grey ? GREYS : SPECTRUM.map(p => p.id);
+  const n = ramp.length;
+  const coord = grey ? (i: number) => greyCoord(c.light![i]) : (i: number) => paletteCoord(pts[i].hue);
+  // unwrapped palette coordinate along the curve (steps are small between points)
   const u: number[] = [];
   for (let i = 0; i < pts.length; i++) {
-    const v = paletteCoord(pts[i].hue);
+    const v = coord(i);
     if (!i) { u.push(v); continue; }
-    let d = v - (u[i - 1] % N + N) % N;
-    if (d > N / 2) d -= N; else if (d < -N / 2) d += N;
+    if (grey) { u.push(v); continue; }
+    let d = v - (u[i - 1] % n + n) % n;
+    if (d > n / 2) d -= n; else if (d < -n / 2) d += n;
     u.push(u[i - 1] + d);
   }
   const out: number[] = [];
@@ -52,7 +79,7 @@ export function curveColors(c: Curve, minRun: number): number[] {
   for (let i = 0; i < pts.length; i++) {
     const want = Math.round(u[i]);
     if (want !== cur && s[i] - since >= minRun) { cur += Math.sign(want - cur); since = s[i]; }
-    out.push(SPECTRUM[((cur % N) + N) % N].id);
+    out.push(grey ? ramp[Math.max(0, Math.min(n - 1, cur))] : ramp[((cur % n) + n) % n]);
   }
   return out;
 }

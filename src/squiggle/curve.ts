@@ -14,6 +14,10 @@ export interface CurvePoint {
 
 export interface Curve {
   id: number;
+  /** the piece has no hue: lightness carries it, and `light` says how */
+  greyscale?: boolean;
+  /** lightness per point, 0 to 100, parallel to `points` */
+  light?: number[];
   type: SquiggleType;
   spectrum: string;            // Art Blocks feature, e.g. "Normal", "HyperRainbow"
   canvas: { w: number; h: number };

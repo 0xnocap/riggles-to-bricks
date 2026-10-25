@@ -14,7 +14,9 @@
 // Drives the real engine with a stub 2D context, captures every stamp it paints,
 // and compares the colours against the adapter's transcription.
 import { parseHash, buildGeom, cumOf, drawRiggle, typeLabel } from '../src/riggle/engine.js';
-import { inkOf, colourParam, bodyLightOf, RIB_LIGHT } from '../src/riggle/curve.ts';
+import { inkOf, colourParam, bodyLightOf } from '../src/riggle/curve.ts';
+
+
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -85,7 +87,19 @@ for (const id of ids) {
   const bodyL = bodyLightOf(t);
 
   const stamps = [];
-  drawRiggle(stubCtx(stamps), t, SIZE, SIZE, {});
+  // The Inverted legendary composites two polarity layers through offscreen
+  // canvases, so without a document it silently falls through to the ordinary
+  // draw and this check never sees the inversion at all. A canvas stub that
+  // records into the same sink makes that path run: at rest the wipe fraction
+  // is zero, so only the base polarity layer paints, which is exactly what the
+  // centre line models.
+  const prevDoc = globalThis.document;
+  globalThis.document = { createElement: () => ({ width: 0, height: 0, getContext: () => stubCtx(stamps) }) };
+  try {
+    drawRiggle(stubCtx(stamps), t, SIZE, SIZE, {});
+  } finally {
+    if (prevDoc === undefined) delete globalThis.document; else globalThis.document = prevDoc;
+  }
   // first fillRect is the background field
   // Every painted sample, tied to the segment it belongs to.
   //  - solid stamps (accordion squares, coil outlines): nearest point on the line
@@ -115,7 +129,12 @@ for (const id of ids) {
   for (const s of stamps) {
     if ((s.kind === 'fill' || s.kind === 'stroke') && s.w !== SIZE && parseHsl(s.css)) {
       const n = nearSeg(s.x + s.w / 2, s.y + s.h / 2);
-      if (n.d <= g.wS) body.push({ css: s.css, seg: n.seg, arc: n.arc, L: s.kind === 'stroke' && t.ribbed && !t.bold ? RIB_LIGHT : bodyL });
+      // An accordion's bright square edge is its rib, painted at lightness 72
+      // (engine.js:522). The centre line does not model ribs, because at about
+      // a stud and a half they are not buildable, so that stroke is not the
+      // line's to match and is left out of the comparison.
+      if (s.kind === 'stroke' && t.ribbed && !t.bold) continue;
+      if (n.d <= g.wS) body.push({ css: s.css, seg: n.seg, arc: n.arc, L: bodyL });
       continue;
     }
     if (s.kind === 'grad' && !s.grad.radial) {

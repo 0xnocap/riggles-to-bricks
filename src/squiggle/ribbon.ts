@@ -150,6 +150,14 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   const cap = sq ? null : capOf(curve, 1.5 / k);
   const colors = sq ? plainColors : endCap(curve, plainColors, 1.5 / k, 1 / k);
   const capR = (curve.type === 'Ribbed' ? 1.08 : 1) * 1.5;
+  // Ribs need a rib colour, and the raised ribbon needs room for them. A
+  // Squiggle's are grey and ribGray says which way they go. A riggle carries no
+  // ribGray, because its ribs are a brighter step of the body colour, and the
+  // engine's spacing for them is about a stud and a half, under one on some
+  // riggles, on a ribbon three to seven studs wide. Banding every other stud in
+  // black here put a hundred black pieces through an Accordion's body. The
+  // Mosaic, which has the resolution, carries the ribs instead.
+  const ribbedBands = curve.type === 'Ribbed' && curve.ribGray !== null;
   const ribC = (curve.ribGray ?? 0) < 128 ? BLACK : WHITE;
 
   // samples along the line (≤ STEP apart): position, arc length, L∞ arc length, point, direction
@@ -230,7 +238,7 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   };
   const band = new Map<number, number>(), ribs = new Set<number>(), b0 = Math.floor(SU[0]) - 1, b1 = Math.floor(SU[SU.length - 1]) + 1;
   let slips = 0;
-  if (curve.type === 'Ribbed') {
+  if (ribbedBands) {
     const colAt = (uc: number) => colors[SI[sampleAt(uc)]];
     for (let b = b0, rib = b0 % 2 === 0; b <= b1; b++, rib = !rib) {
       const col = colAt(b + 0.5);
@@ -240,7 +248,7 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
     }
   }
   /** how far a colour is from what a slab should show along the spectrum: its own colour; a rib also the line's there */
-  const off = (v: Lv, col: number) => Math.min(steps(col, v.want), curve.type === 'Ribbed' && v.want === ribC ? steps(col, colors[SI[v.j]]) : Infinity);
+  const off = (v: Lv, col: number) => Math.min(steps(col, v.want), ribbedBands && v.want === ribC ? steps(col, colors[SI[v.j]]) : Infinity);
   /** in each cell the line runs through: its colours there (every pass, and the nearest point of each pass over the
    *  cell), the latest one last. On top, no colour over a step from all of them: it would skip one along the line */
   const lineAt = new Map<number, number[]>();
@@ -251,7 +259,7 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   const skips = (c: number, col: number) => SPEC.has(col) && !!lineAt.get(c)?.every(l => SPEC.has(l) && steps(col, l) > 1);
   /** a cell the line runs through, showing the line's latest colour there on top of a slab */
   const exact = (c: number, v: Lv) => !v.rib && lineAt.get(c)?.at(-1) === v.col;
-  const isRib = (b: number) => b < b0 || b > b1 ? b % 2 === 0 : ribs.has(b);
+  const isRib = (b: number) => ribbedBands && (b < b0 || b > b1 ? b % 2 === 0 : ribs.has(b));
   const endS = cap ? line[cap.at].s : 0;
   const slabOf = (j: number, d: number, c: number): Lv => {
     const tx = TX[j], tz = TZ[j];
@@ -413,7 +421,7 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
     fresh.add(c);
     const paint = (q: number, col: number) => {
       const e = lv.get(q)![g.L], tid = `${q}:${g.L}${g.part}`;
-      if (g.part === 'side') e.side = col; else if (curve.type === 'Ribbed' && col === ribC) e.rib = true; else { e.col = col; e.rib = false; }
+      if (g.part === 'side') e.side = col; else if (ribbedBands && col === ribC) e.rib = true; else { e.col = col; e.rib = false; }
       tried.set(tid, (tried.get(tid) ?? new Set([g.colour(q)])).add(col));
       recoloured.add(`${q}:${g.L}`);
     };
@@ -638,7 +646,7 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   if (dense && scale === 'small') notes.push('Dense Squiggle: its loops lie closer together than the ribbon is wide, so some run into each other; the Large size shows them better.');
   notes.push(opts.studs ? 'Studded look: plates on top, studs showing.' : 'Smooth look: tiles on top, with plates only where a raised stretch sits.');
   if (curve.type === 'Pipe') notes.push('Pipe: a black edge on each side of the colour core.');
-  if (curve.type === 'Ribbed') notes.push(`Ribbed: ${ribC === BLACK ? 'black' : 'white'} ribs on top, 1 stud every 2 studs${slips ? ` (${plural(slips, 'rib')} left out where ${slips > 1 ? 'they' : 'it'} would hide a whole colour)` : ''}; the plates underneath keep the line’s colours.`);
+  if (ribbedBands) notes.push(`Ribbed: ${ribC === BLACK ? 'black' : 'white'} ribs on top, 1 stud every 2 studs${slips ? ` (${plural(slips, 'rib')} left out where ${slips > 1 ? 'they' : 'it'} would hide a whole colour)` : ''}; the plates underneath keep the line’s colours.`);
   if (recoloured.size) notes.push(`${plural(recoloured.size, 'stud')} recoloured to a neighbour’s colour, so no piece is a single stud and the ribbon holds together.`);
   if (stepped.size) notes.push(`${plural(stepped.size, 'stud')} raised, lowered or trimmed off the edge for the same reason.`);
   if (singles) notes.push(singles > 1 ? `${singles} single-stud pieces remain.` : 'One single-stud piece remains.');
