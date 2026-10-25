@@ -23,6 +23,16 @@ export interface MosaicPicture {
   last: Int32Array;
   k: number;                 // studs per canvas pixel
   stroke: number;            // stroke width, studs
+  /**
+   * Keep every piece inside one cell of `last`.
+   *
+   * A Pixelated riggle is drawn as squares, and the tiler's job is normally to
+   * merge neighbours of a colour into the longest piece it can. Those two pull
+   * against each other: merged across its squares, a pixelated riggle comes out
+   * as bars and stops reading as pixels. With this set a piece may not cross
+   * from one of the engine's cells into the next, so the grid survives.
+   */
+  perCell?: boolean;
 }
 
 export interface PictureOptions {
@@ -86,24 +96,40 @@ function brickOf(p: Pixel): number {
  * out coarser than the render rather than disappearing.
  */
 function pixelPicture(pixels: Pixel[], W: number, H: number, pad: number, field: number): MosaicPicture {
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const p of pixels) {
-    x0 = Math.min(x0, p.x - p.size / 2); x1 = Math.max(x1, p.x + p.size / 2);
-    y0 = Math.min(y0, p.y - p.size / 2); y1 = Math.max(y1, p.y + p.size / 2);
-  }
-  const k = Math.min((W - 2 * pad) / Math.max(1, x1 - x0), (H - 2 * pad) / Math.max(1, y1 - y0));
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  // The engine lays this body on a grid of equal squares, so the bricks go on
+  // one too. Scaling each cell's own rectangle gave squares of one size and
+  // oblongs of another, depending where the rounding fell, and a pixelated
+  // riggle made of oblongs is not pixelated. Cells are placed by their index
+  // on that grid instead, every one the same square.
+  const size = pixels[0].size;
+  let gx0 = Infinity, gz0 = Infinity, gx1 = -Infinity, gz1 = -Infinity;
+  const at = pixels.map((p) => {
+    const gx = Math.round(p.x / size), gz = Math.round(p.y / size);
+    gx0 = Math.min(gx0, gx); gx1 = Math.max(gx1, gx);
+    gz0 = Math.min(gz0, gz); gz1 = Math.max(gz1, gz);
+    return { gx, gz };
+  });
+  const rawW = gx1 - gx0 + 1, rawH = gz1 - gz0 + 1;
+  // A stud is the smallest a cell goes, so a grid wider than the panel has to
+  // be coarsened rather than squeezed: whole cells are grouped, which keeps them
+  // square and keeps the margin, instead of letting the art run to the edge.
+  const group = Math.max(1, Math.ceil(rawW / (W - 2 * pad)), Math.ceil(rawH / (H - 2 * pad)));
+  const gw = Math.ceil(rawW / group), gh = Math.ceil(rawH / group);
+  const side = Math.max(1, Math.floor(Math.min((W - 2 * pad) / gw, (H - 2 * pad) / gh)));
+  const ox = Math.floor((W - gw * side) / 2), oz = Math.floor((H - gh * side) / 2);
   const last = new Int32Array(W * H).fill(-1);
   const cells = new Array<number>(W * H).fill(field);
   pixels.forEach((p, i) => {
-    const col = brickOf(p), half = (p.size * k) / 2;
-    const mx = W / 2 + (p.x - cx) * k, mz = H / 2 + (cy - p.y) * k;
-    const ax = Math.round(mx - half), bx = Math.max(Math.round(mx + half), ax + 1);
-    const az = Math.round(mz - half), bz = Math.max(Math.round(mz + half), az + 1);
-    for (let x = Math.max(0, ax); x < Math.min(W, bx); x++)
-      for (let z = Math.max(0, az); z < Math.min(H, bz); z++) { last[x + z * W] = i; cells[x + z * W] = col; }
+    const col = brickOf(p);
+    const x0 = ox + Math.floor((at[i].gx - gx0) / group) * side;
+    const z0 = oz + Math.floor((gz1 - at[i].gz) / group) * side;   // z counts from the front
+    for (let dx = 0; dx < side; dx++) for (let dz = 0; dz < side; dz++) {
+      const x = x0 + dx, z = z0 + dz;
+      if (x < 0 || z < 0 || x >= W || z >= H) continue;
+      last[x + z * W] = i; cells[x + z * W] = col;
+    }
   });
-  return { w: W, h: H, cells, last, k, stroke: Math.max(1, (pixels[0]?.size ?? 1) * k) };
+  return { w: W, h: H, cells, last, k: side / size, stroke: side, perCell: true };
 }
 
 /** The picture: every cell takes the colour of the last curve point whose stroke covers its centre. */
@@ -294,8 +320,25 @@ function tilePicture(pic: MosaicPicture, layout: Layout, seams: Seam[], pre: Rec
     return s;
   };
   const free = (x: number, z: number, c: number) => x >= 0 && z >= 0 && x < W && z < H && owner[x + z * W] < 0 && col[x + z * W] === c;
+  /** the engine cell a stud belongs to, when pieces must stay inside one */
+  const cellOf = (x: number, z: number) => (pic.perCell ? pic.last[x + z * W] : 0);
+  // The one place a piece is allowed out of its cell: a base plate joint has to
+  // be crossed by tiles or the mosaic comes apart, and a grid of single studs
+  // can never cross one.
+  const seamX = new Set(seams.filter(q => q.vertical).map(q => q.at));
+  const seamZ = new Set(seams.filter(q => !q.vertical).map(q => q.at));
+  const spansSeam = (X: number, Z: number, w: number, d: number) => {
+    for (let i = 1; i < w; i++) if (seamX.has(X + i)) return true;
+    for (let j = 1; j < d; j++) if (seamZ.has(Z + j)) return true;
+    return false;
+  };
   const fits = (X: number, Z: number, w: number, d: number, c: number) => {
     for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) if (!free(X + i, Z + j, c)) return false;
+    if (!pic.perCell) return true;
+    const g = cellOf(X, Z);
+    for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) {
+      if (cellOf(X + i, Z + j) !== g && !spansSeam(X, Z, w, d)) return false;
+    }
     return true;
   };
   const cellsOf = (r: Rect) => { const o: number[] = []; for (let j = 0; j < r.d; j++) for (let i = 0; i < r.w; i++) o.push(r.x + i + (r.z + j) * W); return o; };
@@ -491,6 +534,7 @@ function tilePicture(pic: MosaicPicture, layout: Layout, seams: Seam[], pre: Rec
           if (!b || b.fixed || b.c !== a.c) continue;
           const along = x > a.x;
           if (along ? b.z !== a.z || b.d !== a.d : b.x !== a.x || b.w !== a.w) continue;
+          if (pic.perCell && cellOf(a.x, a.z) !== cellOf(x, z) && !spansSeam(Math.min(a.x, x), Math.min(a.z, z), along ? a.w + b.w : a.w, along ? a.d : a.d + b.d)) continue;
           const m: Rect = { x: a.x, z: a.z, w: along ? a.w + b.w : a.w, d: along ? a.d : a.d + b.d, c: a.c };
           if (!sizesOf(a.c).some(([w, d]) => w === m.w && d === m.d)) continue;
           rects[i] = rects[j] = null; put(m); changed = true; break;
