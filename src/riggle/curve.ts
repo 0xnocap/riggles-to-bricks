@@ -205,6 +205,7 @@ export function riggleCurve({ id, hash, canvas = ART_CANVAS, background }: Riggl
     panel: panelBrickOf(t, background ?? t.bgBit),
     type: variantOf(t),
     greyscale: t.spectrum === 'grey',
+    tone: t.intensity === 'pastel' ? 'pastel' : t.intensity === 'deep' ? 'deep' : null,
     spectrum: spectrumLabel(t),
     canvas: { w: canvas.w, h: canvas.h },
     points,

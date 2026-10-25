@@ -59,7 +59,34 @@ export const LIGHT_OF: Record<number, number> = {
   47: 104,     // Dark Pink    -> Bright Pink
 };
 
-export const SQUIGGLE_COLORS = [...SPECTRUM.map(s => s.id), ...GREYS, ...Object.values(LIGHT_OF), WHITE, BLACK];
+/**
+ * The deepest brick of each spectrum colour's own family, for a Deep riggle.
+ * Where the palette has no darker sibling the colour stands as it is.
+ */
+export const DARK_OF: Record<number, number> = {
+  5: 59,       // Red            -> Dark Red
+  4: 68,       // Orange         -> Dark Orange
+  3: 69,       // Yellow         -> Dark Tan
+  34: 155,     // Lime           -> Olive Green
+  36: 80,      // Bright Green   -> Dark Green
+  153: 63,     // Dark Azure     -> Dark Blue
+  7: 63,       // Blue           -> Dark Blue
+  47: 71,      // Dark Pink      -> Magenta
+};
+
+/**
+ * A riggle's Intensity, which the chain rolls alongside its hues: Neon as the
+ * spectrum is, Pastel a shade lighter, Deep a shade darker. Ignoring it built
+ * every pastel riggle in full strength colours, which is half the collection
+ * wearing the wrong tone.
+ */
+export function toned(col: number, tone: 'pastel' | 'deep' | null | undefined): number {
+  if (tone === 'pastel') return LIGHT_OF[col] ?? col;
+  if (tone === 'deep') return DARK_OF[col] ?? col;
+  return col;
+}
+
+export const SQUIGGLE_COLORS = [...SPECTRUM.map(s => s.id), ...GREYS, ...Object.values(LIGHT_OF), ...Object.values(DARK_OF), WHITE, BLACK];
 const N = SPECTRUM.length;
 
 /** position of a hue on the palette wheel: anchor k at k, linear in between (0..N) */
@@ -99,7 +126,8 @@ export function curveColors(c: Curve, minRun: number): number[] {
   for (let i = 0; i < pts.length; i++) {
     const want = Math.round(u[i]);
     if (want !== cur && s[i] - since >= minRun) { cur += Math.sign(want - cur); since = s[i]; }
-    out.push(grey ? ramp[Math.max(0, Math.min(n - 1, cur))] : ramp[((cur % n) + n) % n]);
+    const pick = grey ? ramp[Math.max(0, Math.min(n - 1, cur))] : ramp[((cur % n) + n) % n];
+    out.push(grey ? pick : toned(pick, c.tone));
   }
   return out;
 }

@@ -28,16 +28,23 @@ export interface Pixel {
   grey: boolean;
 }
 
-export interface Op { x: number; y: number; w: number; h: number; css: string; stroke?: boolean }
+export interface Op {
+  x: number; y: number; w: number; h: number;
+  css: string;
+  /** a gradient fill ramps from `css` to this across the rect, along (gx0,gy0)-(gx1,gy1) */
+  css2?: string;
+  gx0?: number; gy0?: number; gx1?: number; gy1?: number;
+  stroke?: boolean;
+}
 
 const HSL = /hsl\(\s*([-\d.]+)\s*,\s*([\d.]+)%\s*,\s*([-\d.]+)%\s*\)/;
 
 /** A 2D context that paints nothing and remembers every solid rectangle. */
 function recorder(out: Op[]) {
   const noop = () => {};
-  const grad = () => {
-    const g: { _grad: true; stops: string[]; addColorStop: (o: number, css: string) => void } =
-      { _grad: true, stops: [], addColorStop: (_o, css) => { g.stops.push(css); } };
+  const grad = (x0 = 0, y0 = 0, x1 = 0, y1 = 0) => {
+    const g: { _grad: true; stops: string[]; x0: number; y0: number; x1: number; y1: number; addColorStop: (o: number, css: string) => void } =
+      { _grad: true, stops: [], x0, y0, x1, y1, addColorStop: (_o, css) => { g.stops.push(css); } };
     return g;
   };
   const ctx: Record<string, unknown> & { _fill: unknown; _stroke: unknown; _tx: number; _ty: number } = {
@@ -53,15 +60,22 @@ function recorder(out: Op[]) {
       if (typeof css === 'string') out.push({ x: x + ctx._tx, y: y + ctx._ty, w, h, css, stroke: true });
     },
     measureText: () => ({ width: 0 }),
-    createLinearGradient: grad, createRadialGradient: grad, createPattern: () => null,
+    createLinearGradient: (x0: number, y0: number, x1: number, y1: number) =>
+      grad(x0 + ctx._tx, y0 + ctx._ty, x1 + ctx._tx, y1 + ctx._ty),
+    createRadialGradient: () => grad(), createPattern: () => null,
     translate(x: number, y: number) { ctx._tx += x; ctx._ty += y; },
     fillRect(x: number, y: number, w: number, h: number) {
       const f = ctx._fill;
       // a gradient fill is recorded by its first stop: enough to know what the
       // engine painted there, which is all a reader of these ops needs
-      const css = typeof f === 'string' ? f
-        : (f as { _grad?: true; stops?: string[] })?._grad ? (f as { stops: string[] }).stops[0] : null;
-      if (typeof css === 'string') out.push({ x: x + ctx._tx, y: y + ctx._ty, w, h, css });
+      if (typeof f === 'string') { out.push({ x: x + ctx._tx, y: y + ctx._ty, w, h, css: f }); return; }
+      const g = f as { _grad?: true; stops?: string[]; x0: number; y0: number; x1: number; y1: number };
+      if (!g?._grad || !g.stops?.length) return;
+      out.push({
+        x: x + ctx._tx, y: y + ctx._ty, w, h,
+        css: g.stops[0], css2: g.stops[g.stops.length - 1],
+        gx0: g.x0, gy0: g.y0, gx1: g.x1, gy1: g.y1,
+      });
     },
   };
   for (const k of ['lineWidth', 'lineJoin', 'lineCap', 'miterLimit', 'globalAlpha',

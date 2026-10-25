@@ -18,6 +18,8 @@ export interface Curve {
   greyscale?: boolean;
   /** lightness per point, 0 to 100, parallel to `points` */
   light?: number[];
+  /** the piece's Intensity: a shade lighter, a shade darker, or as the spectrum is */
+  tone?: 'pastel' | 'deep' | null;
   type: SquiggleType;
   spectrum: string;            // Art Blocks feature, e.g. "Normal", "HyperRainbow"
   canvas: { w: number; h: number };
