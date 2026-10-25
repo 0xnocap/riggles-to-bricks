@@ -17,11 +17,11 @@ const curve = riggleCurve({ id, hash: D.riggles[id].h });
 
 const OPTS: [string, any][] = [
   ['A  none', undefined],
-  ['B  lighter shade, every 3', { pitch: 3, colour: 'light' }],
-  ['C  lighter shade, every 4', { pitch: 4, colour: 'light' }],
-  ['D  lighter shade, every 5', { pitch: 5, colour: 'light' }],
-  ['E  white, every 4', { pitch: 4, colour: WHITE }],
-  ['F  light grey, every 4', { pitch: 4, colour: GREYS[1] }],
+  ['B  lighter shade, every 2', { pitch: 2, colour: 'light' }],
+  ['C  lighter shade, every 3', { pitch: 3, colour: 'light' }],
+  ['D  lighter shade, every 4', { pitch: 4, colour: 'light' }],
+  ['E  white, every 3', { pitch: 3, colour: WHITE }],
+  ['F  light grey, every 3', { pitch: 3, colour: GREYS[1] }],
 ];
 
 const models = OPTS.map(([label, ribs]) => ({

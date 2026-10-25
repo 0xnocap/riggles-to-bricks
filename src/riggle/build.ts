@@ -47,17 +47,20 @@ export const RIGGLE_GRID: Record<Scale, [number, number]> = {
 };
 
 /**
- * Accordion ribs, off.
+ * Accordion ribs: a line across the stroke every two studs along the wave, in
+ * the lightest brick of the body's own colour family.
  *
- * In the art they are fine bright lines across the stroke, the same hue a
- * shade lighter, at about one every stroke-width-over-three-and-a-half. On a
- * ribbon four to six studs wide that is a rib every stud and a bit, finer than
- * a brick goes. Every coarser stand-in tried read as something the riggle is
- * not: black bands put a hundred black pieces through the body, and white
- * bands every three studs came out a barber pole that buried the colour run.
- * The body stays solid until the palette can say "the same colour, lighter".
+ * The art's spacing works out at about a stud and a bit, so two studs is the
+ * closest a brick gets to it. Two is not buildable though: rib and body then
+ * alternate every stud, no tile can span either, and four tiles in ten come out
+ * as single 1x1 studs. Three studs keeps the rhythm and brings that back to
+ * about one in six.
+ *
+ * The colour is the riggle's own a shade lighter, the way the engine strokes
+ * each square's edge brighter than its fill: white read as a candy cane and
+ * grey made the colour look dirty.
  */
-export const RIGGLE_RIBS: { pitch: number; colour: number } | undefined = undefined;
+export const RIGGLE_RIBS = { pitch: 3, colour: 'light' as const };
 
 /** Narrowest ribbon worth building: below this the tiler is left making 1x1s. */
 const MIN_WIDTH = 3;

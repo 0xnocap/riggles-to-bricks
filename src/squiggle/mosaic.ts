@@ -118,18 +118,26 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
       }
   });
   const cells = [...last].map(i => (i < 0 ? BLACK : colors[i]));
-  // Rib bands need a rib colour, and one the background does not use: a
-  // Squiggle's ribs are grey and ribGray says which way they go, while a
-  // riggle's are a brighter step of the body colour. Banding a riggle to black
-  // here would paint the background straight through the body and cut it into
-  // islands, so the caller says what the ribs are or there are none.
+  // Accordion ribs.
+  //
+  // The engine stamps this body as a row of squares along the wave, and what
+  // you see are their bright leading edges. So a rib is a LINE ACROSS the
+  // stroke, square to the direction of travel: upright while the wave runs
+  // sideways, flat while it climbs. The count runs along the whole wave, so at
+  // a corner the upright ribs of the run and the flat ribs of the riser both
+  // carry on through it and cross.
+  //
+  // Deciding a rib per cell, from the nearest point on the line, cannot do
+  // that: every cell around a corner reads the same arc position, so the whole
+  // corner ribs or does not as one block and the rib never turns. Walking the
+  // wave and drawing each rib as a line is what the art does.
+  //
+  // A rib needs a colour the background does not use. A Squiggle's are grey and
+  // ribGray says which way they go; a riggle's are its own colour a shade
+  // lighter. Black would paint the background through the body, so the caller
+  // says what the ribs are or there are none.
   const ribSpec = opts.ribs ?? (curve.ribGray !== null ? { pitch: 2, colour: (curve.ribGray ?? 0) < 128 ? BLACK : WHITE } : null);
   if (curve.type === 'Ribbed' && ribSpec) {
-    // rib bands straight across the stroke, 1 stud long every `pitch` studs of arc length: a cell's
-    // band is read at its nearest point on the pass drawn on top of it
-    const s = arcLength(points).map(v => v * k), pitch = Math.max(2, Math.round(ribSpec.pitch));
-    // 'step' takes the next colour along the spectrum, so a rib is a tighter
-    // turn of the sweep the riggle is already doing rather than a foreign colour
     const ribOf = (c: number) => {
       if (ribSpec.colour === 'light') return LIGHT_OF[c] ?? GREYS[GREYS.length - 1];
       if (ribSpec.colour !== 'step') return ribSpec.colour;
@@ -138,14 +146,42 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
       const i = SPECTRUM.findIndex(v => v.id === c);
       return i < 0 ? c : SPECTRUM[(i + 1) % SPECTRUM.length].id;
     };
-    last.forEach((i, key) => {
-      if (i < 0) return;
-      const x = key % W + 0.5, z = Math.floor(key / W) + 0.5;
-      let best = i, bd = Infinity;
-      for (let j = i; j >= 0 && s[i] - s[j] <= 2 * r; j--) { const d = (X[j] - x) ** 2 + (Z[j] - z) ** 2; if (d < bd) { bd = d; best = j; } }
-      for (let j = i + 1; j < points.length && s[j] - s[i] <= 2 * r; j++) { const d = (X[j] - x) ** 2 + (Z[j] - z) ** 2; if (d < bd) { bd = d; best = j; } }
-      if (Math.floor(s[best]) % pitch === 0) cells[key] = ribOf(cells[key]);
-    });
+    const s = arcLength(points).map(v => v * k);           // arc along the wave, in studs
+    const total = s[s.length - 1] ?? 0;
+    const pitch = Math.max(2, Math.round(ribSpec.pitch));
+    if (!opts.square) {
+      // A curve's ribs lie square to its tangent, which swings through every
+      // angle, so they cannot be drawn as upright or flat lines. Each cell
+      // takes its band from the nearest point on the pass drawn over it, as
+      // the Squiggle tool has always done.
+      last.forEach((i, key) => {
+        if (i < 0) return;
+        const x = key % W + 0.5, z = Math.floor(key / W) + 0.5;
+        let best = i, bd = Infinity;
+        for (let j = i; j >= 0 && s[i] - s[j] <= 2 * r; j--) { const d = (X[j] - x) ** 2 + (Z[j] - z) ** 2; if (d < bd) { bd = d; best = j; } }
+        for (let j = i + 1; j < points.length && s[j] - s[i] <= 2 * r; j++) { const d = (X[j] - x) ** 2 + (Z[j] - z) ** 2; if (d < bd) { bd = d; best = j; } }
+        if (Math.floor(s[best]) % pitch === pitch - 1) cells[key] = ribOf(cells[key]);
+      });
+      return { w: W, h: H, cells, last, k, stroke: curve.stroke * k };
+    }
+    const reach = Math.ceil(curve.stroke * k / 2) + 1;      // half the stroke, in studs
+    const paint = (x: number, z: number) => {
+      if (x < 0 || z < 0 || x >= W || z >= H) return;
+      const key = x + z * W;
+      if (last[key] < 0) return;                           // only where the riggle is
+      cells[key] = ribOf(cells[key]);
+    };
+    let at = 0;
+    for (let a = pitch; a < total; a += pitch) {
+      while (at + 1 < s.length && s[at + 1] < a) at++;
+      // which way the wave is going here, from its neighbours a stroke apart
+      const lo = Math.max(0, at - 2), hi = Math.min(points.length - 1, at + 2);
+      const dx = Math.abs(X[hi] - X[lo]), dz = Math.abs(Z[hi] - Z[lo]);
+      const cx = Math.floor(X[at]), cz = Math.floor(Z[at]);
+      // running sideways: an upright rib. climbing: a flat one.
+      if (dx >= dz) for (let z = cz - reach; z <= cz + reach; z++) paint(cx, z);
+      else for (let x = cx - reach; x <= cx + reach; x++) paint(x, cz);
+    }
   }
   return { w: W, h: H, cells, last, k, stroke: curve.stroke * k };
 }
