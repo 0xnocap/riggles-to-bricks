@@ -620,10 +620,11 @@ $('skip').addEventListener('click', () => stage?.skip());
 $('reset').addEventListener('click', () => { stage?.resetView(); $('reset').hidden = true; });
 
 // ---------- sticky section menu ----------
-const secLinks = [...document.querySelectorAll<HTMLAnchorElement>('#secnav a')];
-secLinks.forEach(a => a.addEventListener('click', e => {   // scrolls, without a history entry
-  e.preventDefault();
-  $(a.dataset.sec!).scrollIntoView({ behavior: 'smooth', block: 'start' });
+// The section tabs are buttons, not links to #ids: they scroll the page and
+// leave the address bar alone, so a riggle's URL is only ever ?id=1234.
+const secLinks = [...document.querySelectorAll<HTMLButtonElement>('#secnav button')];
+secLinks.forEach(b => b.addEventListener('click', () => {
+  $(b.dataset.sec!).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }));
 const secObserver = new IntersectionObserver(es => {
   for (const e of es) if (e.isIntersecting) secLinks.forEach(a => a.classList.toggle('on', a.dataset.sec === e.target.id));
