@@ -122,7 +122,7 @@ describe('Squiggle exports on real models', () => {
     const m = model(id, kind, scale), n = m.pieces.length;
     // CSV: one line per lot with its section, then TOTAL
     const rows = parseCSV(partsCSV(m)), [head, ...body] = rows, total = body.pop()!;
-    expect(head).toEqual(['Section', 'BrickLink part', 'Part', 'Colour', 'BrickLink colour', 'Qty', 'LEGO Element ID', 'Grams', 'Est. price (EUR)']);
+    expect(head).toEqual(['Section', 'BrickLink part', 'Part', 'Colour', 'BrickLink colour', 'Qty', 'LEGO Element ID', 'Grams', 'Est. price (USD)']);
     expect(rows.every(r => r.length === head.length)).toBe(true);
     expect(body.length).toBe(m.bom.length);
     const q = head.indexOf('Qty');

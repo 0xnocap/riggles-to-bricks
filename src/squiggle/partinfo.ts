@@ -1,7 +1,11 @@
 // Weight and price estimate of one part.
 // Grams: BrickLink catalogue "Weight" (catalogitem.page?P=<part>), read 2026-09-29.
 // 3062b and 6141 are catalogued by BrickLink as 3062 and 4073.
-// EUR: LEGO Pick a Brick, lego.com/fr-fr, black element unless noted, read 2026-09-29
+// Prices: LEGO Pick a Brick, lego.com/fr-fr, black element unless noted, read 2026-09-29,
+// in EUR, and converted to USD at the European Central Bank reference rate of
+// 1 EUR = 1.1193 USD for 23 October 2026. LEGO prices by region, so a converted
+// euro price is not a US shelf price: it is the order of magnitude this site has
+// always claimed, and nothing more.
 // (after the 14 Sep 2026 price change). Reference points: plate 1×1 0.06, brick 2×4 0.22,
 // tile 2×2 0.08, tile 1×6 0.16, plate 16×16 3.40, Technic brick 1×16 0.94.
 // Prices vary by colour and over time: an order of magnitude, never an exact price.
@@ -54,5 +58,9 @@ function lookup(part: string, kind: Kind, w: number, d: number, h: number): [num
 /** grams per piece */
 export const partGrams = (part: string, kind: Kind, w: number, d: number, h: number): number => lookup(part, kind, w, d, h)[0];
 
-/** EUR per piece, order of magnitude of a Pick a Brick price */
-export const partPrice = (part: string, kind: Kind, w: number, d: number, h: number): number => lookup(part, kind, w, d, h)[1];
+/** EUR to USD, European Central Bank reference rate for 23 October 2026. */
+export const EUR_USD = 1.1193;
+
+/** USD per piece, order of magnitude of a Pick a Brick price */
+export const partPrice = (part: string, kind: Kind, w: number, d: number, h: number): number =>
+  lookup(part, kind, w, d, h)[1] * EUR_USD;

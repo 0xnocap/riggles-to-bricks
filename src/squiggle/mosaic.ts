@@ -5,6 +5,8 @@ import { checkModel } from '../core/check';
 import { availableAtLego, elementId } from '../core/lego';
 import { partId, TILE_SIZES, type Piece } from '../core/parts';
 import { arcLength, type Curve } from './curve';
+import type { Pixel } from '../riggle/pixels';
+import { GREYS as GREY_RAMP, greyCoord, paletteCoord } from './spectrum';
 import { summarize, type Scale, type SqModel } from './model';
 import { nameplateLines } from './nameplate';
 import { endCap } from './ribbon';
@@ -46,6 +48,47 @@ export interface PictureOptions {
    * spacing that would come out as noise.
    */
   ribs?: { pitch: number; colour: number | 'step' };
+  /**
+   * A Pixelated riggle's own cells, straight from the engine, in canvas
+   * pixels. When these are given the picture is built from them instead of
+   * from the stroke: that body paints a constellation of grid-aligned cells
+   * and has no stroke to follow, so marching the centre line gave back a solid
+   * ribbon, the one thing it is not.
+   */
+  pixels?: Pixel[];
+}
+
+/** One brick colour for a cell the engine painted: its hue, or its lightness when the riggle has no hue. */
+function brickOf(p: Pixel): number {
+  if (p.grey) return GREY_RAMP[Math.max(0, Math.min(GREY_RAMP.length - 1, Math.round(greyCoord(p.light))))];
+  const N = SPECTRUM.length;
+  return SPECTRUM[((Math.round(paletteCoord(p.hue)) % N) + N) % N].id;
+}
+
+/**
+ * A Pixelated riggle: the engine's own cells, fitted to the grid. Each cell
+ * covers at least one stud, so a riggle whose cells fall below a stud comes
+ * out coarser than the render rather than disappearing.
+ */
+function pixelPicture(pixels: Pixel[], W: number, H: number, pad: number): MosaicPicture {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const p of pixels) {
+    x0 = Math.min(x0, p.x - p.size / 2); x1 = Math.max(x1, p.x + p.size / 2);
+    y0 = Math.min(y0, p.y - p.size / 2); y1 = Math.max(y1, p.y + p.size / 2);
+  }
+  const k = Math.min((W - 2 * pad) / Math.max(1, x1 - x0), (H - 2 * pad) / Math.max(1, y1 - y0));
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const last = new Int32Array(W * H).fill(-1);
+  const cells = new Array<number>(W * H).fill(BLACK);
+  pixels.forEach((p, i) => {
+    const col = brickOf(p), half = (p.size * k) / 2;
+    const mx = W / 2 + (p.x - cx) * k, mz = H / 2 + (cy - p.y) * k;
+    const ax = Math.round(mx - half), bx = Math.max(Math.round(mx + half), ax + 1);
+    const az = Math.round(mz - half), bz = Math.max(Math.round(mz + half), az + 1);
+    for (let x = Math.max(0, ax); x < Math.min(W, bx); x++)
+      for (let z = Math.max(0, az); z < Math.min(H, bz); z++) { last[x + z * W] = i; cells[x + z * W] = col; }
+  });
+  return { w: W, h: H, cells, last, k, stroke: Math.max(1, (pixels[0]?.size ?? 1) * k) };
 }
 
 /** The picture: every cell takes the colour of the last curve point whose stroke covers its centre. */
@@ -60,6 +103,8 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
   const X = points.map(p => W / 2 + (p.x - pcx) * k), Z = points.map(p => H / 2 + (pcy - p.y) * k);
   // the end cap the original draws over everything (Ribbed: rib disc and dense-rib tail, Pipe: filled end dot),
   // from the end point on: its disc is the dot; the colours before it catch up with its colour one step a stud
+  if (opts.pixels?.length) return pixelPicture(opts.pixels, W, H, pad);
+
   const plain = curveColors(curve, 2 / k);
   const colors = opts.square ? plain : endCap(curve, plain, 0, 1 / k);
   const last = new Int32Array(W * H).fill(-1);

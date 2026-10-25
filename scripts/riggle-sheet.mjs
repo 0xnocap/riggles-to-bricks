@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
 import { buildRiggle } from '../src/riggle/build.ts';
 import { riggleCurve } from '../src/riggle/curve.ts';
+import { rigglePixels } from '../src/riggle/pixels.ts';
 import { curveColors } from '../src/squiggle/spectrum.ts';
 import { renderHex } from '../src/core/palette.ts';
 
@@ -34,10 +35,19 @@ function px(png, x, y, [r, g, b]) {
 }
 const rect = (png, x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) px(png, x + i, y + j, c); };
 
-/** the art, drawn from the centre line the adapter produced */
+/** the art: the engine's own cells for a Pixelated riggle, else the centre line */
 function drawArt(png, ox, oy, w, h, curve) {
   rect(png, ox, oy, w, h, hexRGB(curve.background === 1 ? '#CCFF00' : '#000000'));
   const k = Math.min(w / curve.canvas.w, h / curve.canvas.h);
+  const cells = rigglePixels(curve.traits, curve.canvas.w, curve.canvas.h);
+  if (cells.length) {
+    for (const q of cells) {
+      const c = q.grey ? hslRGB(0, 0, q.light) : hslRGB(q.hue, curve.traits.satPct, q.light);
+      const side = Math.max(1, Math.round(q.size * k));
+      rect(png, Math.round(ox + (q.x * k) - side / 2), Math.round(oy + (q.y * k) - side / 2), side, side, c);
+    }
+    return;
+  }
   const r = Math.max(1, (curve.stroke * k) / 2);
   curve.points.forEach((p, i) => {
     const cx = ox + p.x * k, cy = oy + p.y * k;

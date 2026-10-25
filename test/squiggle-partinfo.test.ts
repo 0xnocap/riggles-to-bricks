@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PARTS, type Kind } from '../src/core/parts';
-import { partGrams, partPrice } from '../src/squiggle/partinfo';
+import { partGrams, partPrice , EUR_USD } from '../src/squiggle/partinfo';
 
 // every PARTS entry as [kind, part, w, d, h]
 const ALL = (Object.entries(PARTS) as [Kind, Record<string, string>][]).flatMap(([kind, t]) => Object.entries(t).map(([k, part]) => {
@@ -29,8 +29,10 @@ describe('part weights and prices', () => {
     expect(partGrams('3062b', 'round', 1, 1, 3)).toBeGreaterThan(partGrams('6141', 'round', 1, 1, 1));
   });
   it('prices are Pick a Brick orders of magnitude', () => {
-    expect(partPrice('3024', 'plate', 1, 1, 1)).toBeCloseTo(0.06, 2);
-    expect(partPrice('3001', 'brick', 2, 4, 3)).toBeCloseTo(0.22, 2);
+    // the documented Pick a Brick reference points, in USD at the rate the
+    // table is converted by, so this still checks the prices and not the rate
+    expect(partPrice('3024', 'plate', 1, 1, 1)).toBeCloseTo(0.06 * EUR_USD, 2);
+    expect(partPrice('3001', 'brick', 2, 4, 3)).toBeCloseTo(0.22 * EUR_USD, 2);
     expect(partPrice('91405', 'plate', 16, 16, 1)).toBeGreaterThan(2);
     expect(partPrice('3703', 'technic', 1, 16, 3)).toBeGreaterThan(partPrice('3700', 'technic', 1, 2, 3));
   });

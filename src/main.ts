@@ -168,7 +168,9 @@ for (const [id, what] of EXAMPLES) {
 function showOriginal(l: Loaded) {
   $('original').classList.remove('loading');
   const img = $<HTMLImageElement>('orig-img');
-  img.src = l.original; img.hidden = false;
+  // the riggle's own square, not the published wide canvas: beside the model a
+  // 3:2 crop is mostly background at the sides
+  img.src = riggleImage(l.hash, l.background, 900, 'square'); img.hidden = false;
   img.alt = `Riggle #${l.id}`;
   $('orig-title').textContent = squiggleName(l);
   $('orig-origin').textContent = ORIGIN;
@@ -317,7 +319,7 @@ function renderStats(m: SqModel) {
   $('stats').innerHTML = stat('Pieces', m.pieces.length.toLocaleString('en'), [`${s.squiggle.pieces.toLocaleString('en')} Riggle`, `+ ${s.display.pieces.toLocaleString('en')} Display`])
     + stat('Size in cm', thin(sizeText(m).replace(/ cm$/, '')), [dims])
     + stat('Weight', `≈ ${unit(kg(m.grams))}`)
-    + stat('Estimated cost', `≈ €${m.cost}`, ['at Pick a Brick prices']);
+    + stat('Estimated cost', `≈ $${m.cost}`, ['at Pick a Brick prices']);
   $('model-sub').innerHTML = `<span>${[loaded ? squiggleName(loaded) : '', ...modelLabel(m).split(' · '), 'built and checked in your browser'].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</span>`;
 }
 
@@ -531,7 +533,7 @@ function renderBuy(m: SqModel) {
   const s = orderSummary(m), total = m.bom.length, pcs = m.pieces.length.toLocaleString('en'), missing = s.brickLinkOnly.length;
   $('shop-sum').textContent = `${total} lots · ${pcs} pieces`;
   const row = (name: string, lots: number, pieces: number, grams: number, cost: number, cls = '') =>
-    `<div class="st${cls}"><b>${name}</b><span>${lots} lots</span><span>${pieces.toLocaleString('en')} pieces</span><span class="g">${kg(grams)}</span><span>≈ €${cost}</span></div>`;
+    `<div class="st${cls}"><b>${name}</b><span>${lots} lots</span><span>${pieces.toLocaleString('en')} pieces</span><span class="g">${kg(grams)}</span><span>≈ $${cost}</span></div>`;
   const q = m.subtotals.squiggle, d = m.subtotals.display;
   $('subtot').innerHTML = row('Riggle', q.lots, q.pieces, q.grams, q.cost) + row('Display', d.lots, d.pieces, d.grams, d.cost) + row('Total', total, m.pieces.length, m.grams, m.cost, ' total');
   const g = $('shop-grid'); g.innerHTML = '';
@@ -539,7 +541,7 @@ function renderBuy(m: SqModel) {
     const lines = m.bom.filter(l => l.role === role), st = m.subtotals[role];
     if (!lines.length) continue;
     const h = document.createElement('div'); h.className = 'shop-sec';
-    h.innerHTML = `<b>${role === 'squiggle' ? 'Riggle' : 'Display'}</b><span>${st.lots} lots · ${st.pieces.toLocaleString('en')} pieces · ${kg(st.grams)} · ≈ €${st.cost}</span>`;
+    h.innerHTML = `<b>${role === 'squiggle' ? 'Riggle' : 'Display'}</b><span>${st.lots} lots · ${st.pieces.toLocaleString('en')} pieces · ${kg(st.grams)} · ≈ $${st.cost}</span>`;
     g.append(h, ...lines.map(lotEl));
   }
   const more = $('shop-more');

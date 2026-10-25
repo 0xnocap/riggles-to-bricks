@@ -21,6 +21,7 @@ import type { Curve } from '../squiggle/curve';
 import type { Display, Format, Scale, SqModel } from '../squiggle/model';
 import { MX, MZ } from '../squiggle/ribbon';
 import { riggleCurve, type RiggleCurve } from './curve';
+import { rigglePixels } from './pixels';
 
 /**
  * Relief panel, studs. 3:2, and 0.8 cm a stud: 38.4 x 25.6 cm and 43.2 x 28.8 cm.
@@ -46,17 +47,17 @@ export const RIGGLE_GRID: Record<Scale, [number, number]> = {
 };
 
 /**
- * Accordion ribs: a band one stud across the stroke every three studs along
- * the wave, in the next colour along the spectrum.
+ * Accordion ribs, off.
  *
- * The engine stamps this body's squares every S/3.2, which lands at about 1.6
- * studs on the large mosaic and under one stud on some riggles, and nothing
- * finer than a stud can be built. Three studs is a pitch bricks can hold. The
- * rib colour is the next step of the sweep the riggle is already doing, so it
- * reads as a tighter turn of its own palette: white ribs came out as a barber
- * pole and lost the colour run.
+ * In the art they are fine bright lines across the stroke, the same hue a
+ * shade lighter, at about one every stroke-width-over-three-and-a-half. On a
+ * ribbon four to six studs wide that is a rib every stud and a bit, finer than
+ * a brick goes. Every coarser stand-in tried read as something the riggle is
+ * not: black bands put a hundred black pieces through the body, and white
+ * bands every three studs came out a barber pole that buried the colour run.
+ * The body stays solid until the palette can say "the same colour, lighter".
  */
-export const RIGGLE_RIBS = { pitch: 3, colour: 'step' as const };
+export const RIGGLE_RIBS: { pitch: number; colour: number } | undefined = undefined;
 
 /** Narrowest ribbon worth building: below this the tiler is left making 1x1s. */
 const MIN_WIDTH = 3;
@@ -94,7 +95,11 @@ export interface BuiltRiggle { curve: RiggleCurve; model: SqModel; width: number
  */
 export function buildRiggleModel(curve: Curve, meta: { id: number; hash: string }, opts: RiggleBuild): SqModel {
   if (opts.format === 'mosaic') {
-    return buildMosaic(curve, opts.scale, meta, RIGGLE_GRID[opts.scale], { square: true, ribs: RIGGLE_RIBS });
+    // A Pixelated riggle brings its own cells; every other body follows its
+    // stroke. The traits ride on the curve, and survive the trip to a worker.
+    const t = (curve as Partial<RiggleCurve>).traits;
+    const pixels = t ? rigglePixels(t, curve.canvas.w, curve.canvas.h) : [];
+    return buildMosaic(curve, opts.scale, meta, RIGGLE_GRID[opts.scale], { square: true, ribs: RIGGLE_RIBS, pixels });
   }
   const panel = RIGGLE_PANEL[opts.scale];
   return buildRelief(curve, opts.display ?? 'frame', opts.scale, meta, {

@@ -62,14 +62,14 @@ const kg = (g: number) => (g >= 995 ? `${(g / 1000).toFixed(1)} kg` : `${Math.ro
  * lot, then a TOTAL line. CRLF, UTF-8.
  */
 export function partsCSV(m: SqModel): string {
-  const rows: (string | number)[][] = [['Section', 'BrickLink part', 'Part', 'Colour', 'BrickLink colour', 'Qty', 'LEGO Element ID', 'Grams', 'Est. price (EUR)']];
-  let g = 0, eur = 0;
+  const rows: (string | number)[][] = [['Section', 'BrickLink part', 'Part', 'Colour', 'BrickLink colour', 'Qty', 'LEGO Element ID', 'Grams', 'Est. price (USD)']];
+  let g = 0, usd = 0;
   for (const l of m.bom) {
     rows.push([SECTION[l.role], brickLinkId(l.part), l.hidden ? `${l.name} (hidden support)` : l.name, l.colorName, l.color, l.qty,
       elementId(l.part, l.color) ?? '', fix(l.qty * l.grams, 1), fix(l.qty * l.price, 2)]);
-    g += l.qty * l.grams; eur += l.qty * l.price;
+    g += l.qty * l.grams; usd += l.qty * l.price;
   }
-  rows.push(['TOTAL', '', `${m.bom.length} lots`, '', '', pieces(m), '', fix(g, 1), fix(eur, 2)]);
+  rows.push(['TOTAL', '', `${m.bom.length} lots`, '', '', pieces(m), '', fix(g, 1), fix(usd, 2)]);
   return rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
 
@@ -295,7 +295,7 @@ export function kitReadme(m: SqModel, src: SquiggleInfo, files: { name: string; 
     '',
     `${pieces(m).toLocaleString('en')} pieces in ${m.bom.length} lots (Squiggle ${s.squiggle.pieces.toLocaleString('en')} · Display ${s.display.pieces.toLocaleString('en')}) · ${m.steps.length} build steps`,
     `Size ≈ ${size} · Weight ≈ ${kg(m.grams)}`,
-    `Cost ≈ €${m.cost}: an estimate from LEGO Pick a Brick prices (Sept 2026), an order of magnitude, not a quote.`,
+    `Cost ≈ $${m.cost}: an estimate from LEGO Pick a Brick prices (Sept 2026), an order of magnitude, not a quote.`,
     '',
     'FILES',
     ...files.map(f => `${f.name.padEnd(w)}${f.about}`),

@@ -18,7 +18,7 @@ export interface SqBomLine {
   qty: number; role: Role;
   hidden: boolean;               // Trans-Clear supports ("hidden supports")
   grams: number;                 // per piece
-  price: number;                 // estimate per piece, EUR
+  price: number;                 // estimate per piece, USD
 }
 export interface Subtotal { pieces: number; lots: number; grams: number; cost: number }
 
@@ -51,7 +51,7 @@ export interface SqModel {
   /** the panel or grid this model was built on, studs */
   panel?: { w: number; h: number };
   grams: number;
-  cost: number;                  // order of magnitude, EUR
+  cost: number;                  // order of magnitude, USD
   /**
    * How to show it. 'table': as built, y up. 'wall': the model's y axis points
    * out of the wall towards the viewer and its z axis points up (Frame, hung).

@@ -915,7 +915,7 @@ export class SqPageMaker {
       [m.pieces.length.toLocaleString('en'), `pieces (riggle ${m.subtotals.squiggle.pieces} · display ${m.subtotals.display.pieces})`],
       [sizeText(m).split(',')[0], sizeText(m).split(', ')[1]],
       [kg(m.grams), 'estimated weight'],
-      [`≈ €${Math.round(m.cost)}`, 'order of magnitude, Pick a Brick prices'],
+      [`≈ $${Math.round(m.cost)}`, 'order of magnitude, Pick a Brick prices'],
       [String(m.steps.length), 'build steps'],
     ];
     // three columns as wide as their text, spread over the space right of the original
@@ -937,7 +937,7 @@ export class SqPageMaker {
     const { m } = this, pages = inventoryPages(m), rows = pages[pi], [pg, x] = blank();
     x.fillStyle = INK; font(x, 52, 800); x.fillText('Parts inventory' + (pages.length > 1 ? ` (${pi + 1}/${pages.length})` : ''), 60, 92);
     x.fillStyle = SUB; font(x, 23);
-    x.fillText(`${m.pieces.length.toLocaleString('en')} pieces · ${m.bom.length} lots · ${kg(m.grams)} · ${sizeText(m)} · cost ≈ €${Math.round(m.cost)}, an order-of-magnitude estimate of LEGO Pick a Brick prices`, 60, 132);
+    x.fillText(`${m.pieces.length.toLocaleString('en')} pieces · ${m.bom.length} lots · ${kg(m.grams)} · ${sizeText(m)} · cost ≈ $${Math.round(m.cost)}, an order-of-magnitude estimate of LEGO Pick a Brick prices`, 60, 132);
     font(x, 18); x.fillText(`Under each part: BrickLink part number / LEGO Element ID.${m.pieces.some(p => p.support) ? ' Clear pieces are the hidden supports.' : ''}`, 60, 162);
     const cw = (PW - 120) / INV.cols;
     let y = INV.top;
@@ -952,7 +952,7 @@ export class SqPageMaker {
           : m.format === 'mosaic' ? 'the black base and background' : m.display === 'frame' ? 'the frame, panel, nameplate and hanging bricks'
           : `the base, supports${m.display === 'backdrop' ? ', wall' : ''} and nameplate`;
         font(x, 21); x.fillStyle = SUB;
-        x.fillText(`${r.cont ? '(continued) · ' : ''}${s.pieces} pieces · ${s.lots} lots · ${kg(s.grams)} · ≈ €${s.cost} · ${what}`, 88 + lead, y + 33);
+        x.fillText(`${r.cont ? '(continued) · ' : ''}${s.pieces} pieces · ${s.lots} lots · ${kg(s.grams)} · ≈ $${s.cost} · ${what}`, 88 + lead, y + 33);
         y += INV.head;
         return;
       }

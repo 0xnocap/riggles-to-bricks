@@ -58,14 +58,20 @@ export function riggleFeatures(t: Traits, background: number): Record<string, st
 }
 
 /**
- * The riggle drawn on the canvas the collection publishes, 3:2, as a data URL.
- * Nothing is fetched: the engine draws it here. Browser only, since it needs a
- * canvas; in Node it answers an empty string.
+ * The riggle, drawn here, as a data URL. Nothing is fetched. Browser only,
+ * since it needs a canvas; in Node it answers an empty string.
+ *
+ * `shape` picks the canvas. "wide" is the one the collection publishes,
+ * 1800 x 1200, which is what a link preview or a social card should carry.
+ * "square" is the riggle's own composition: the engine always draws it inside
+ * a centred square, so a wide canvas only adds plain background at the sides,
+ * and in a small panel beside the brick model that background reads as empty
+ * margin. The drawing itself is identical either way.
  */
-export function riggleImage(hash: string, background: number, width = 900): string {
+export function riggleImage(hash: string, background: number, width = 900, shape: 'wide' | 'square' = 'wide'): string {
   if (typeof document === 'undefined') return '';
   const c = document.createElement('canvas');
-  c.width = width; c.height = Math.round((width * 2) / 3);
+  c.width = width; c.height = shape === 'square' ? width : Math.round((width * 2) / 3);
   drawRiggle(c.getContext('2d')!, parseHash(hash), c.width, c.height, { bg: background });
   return c.toDataURL();
 }

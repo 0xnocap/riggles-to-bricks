@@ -186,7 +186,10 @@ export function riggleCurve({ id, hash, canvas = ART_CANVAS, background }: Riggl
     light,
     stroke,
     outline,
-    ribGray: null,          // riggle ribs are a brighter step of the body colour, not grey
+    // An Accordion's ribs are the bright edges of its squares, fine lines a
+    // shade lighter than the body and finer than a stud. No rib colour means
+    // no rib bands, in the ribbon or the mosaic; see RIGGLE_RIBS.
+    ribGray: null,
     box: { x0, y0, x1, y1 },
   };
 }

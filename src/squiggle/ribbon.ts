@@ -150,13 +150,10 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   const cap = sq ? null : capOf(curve, 1.5 / k);
   const colors = sq ? plainColors : endCap(curve, plainColors, 1.5 / k, 1 / k);
   const capR = (curve.type === 'Ribbed' ? 1.08 : 1) * 1.5;
-  // Ribs need a rib colour, and the raised ribbon needs room for them. A
-  // Squiggle's are grey and ribGray says which way they go. A riggle carries no
-  // ribGray, because its ribs are a brighter step of the body colour, and the
-  // engine's spacing for them is about a stud and a half, under one on some
-  // riggles, on a ribbon three to seven studs wide. Banding every other stud in
-  // black here put a hundred black pieces through an Accordion's body. The
-  // Mosaic, which has the resolution, carries the ribs instead.
+  // Ribs need a rib colour. ribGray says which way they go against the body,
+  // and a riggle's Accordion goes lighter: the engine strokes each square's
+  // edge brighter than its fill. Without a rib colour this resolved to black,
+  // which put a hundred black pieces through the body of every Accordion.
   const ribbedBands = curve.type === 'Ribbed' && curve.ribGray !== null;
   const ribC = (curve.ribGray ?? 0) < 128 ? BLACK : WHITE;
 
