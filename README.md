@@ -62,7 +62,7 @@ Not affiliated with, sponsored or endorsed by the LEGO Group or BrickLink. LEGOÂ
 Group. Parts data: Rebrickable. Models are computer-checked, not physically built. Personal use only, no sale.
 No purchases, payments or personal data go through this site.
 
-Riggles is an onchain collection on Robinhood Chain. Built on
+Riggles by [Cap](https://x.com/notacaptain_), an onchain collection on Robinhood Chain. Built on
 [Squiggle to Bricks](https://github.com/hs7j4yk4sz-boop/squiggle-to-bricks) by John Karp.
 
 ## License

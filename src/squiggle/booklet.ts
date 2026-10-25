@@ -1259,7 +1259,7 @@ export class SqPageMaker {
       upload: 'Read from an uploaded picture: the variant details are approximate.',
     };
     const rows = [
-      'Riggles is an onchain collection on Robinhood Chain. Built on Squiggle to Bricks by John Karp.',
+      'Riggles by Cap (@notacaptain_). Built on Squiggle to Bricks by John Karp.',
       ...(src.origin ? [origin[src.origin]] : []),
       'For personal use only, not for sale. Not affiliated with, sponsored or endorsed by the LEGO Group or BrickLink.',
       'Models are generated automatically and checked by software only: they have not been physically built. Provided “as is”, without warranty of any kind.',

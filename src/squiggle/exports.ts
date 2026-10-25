@@ -87,7 +87,7 @@ export const pickABrickNames = (m: SqModel, src: SquiggleInfo, n = pickABrickFil
 
 /** The nameplate at real size (600 dpi): plain, and on a white sheet with cut marks. */
 export async function nameplateFiles(m: SqModel): Promise<{ plain: Blob; cutMarks: Blob }> {
-  const lines = m.nameplate?.lines ?? [`Riggle #${m.id}`, 'riggles · 2026'];
+  const lines = m.nameplate?.lines ?? [`Riggle #${m.id}`, 'Cap · riggles · 2026'];
   const [plain, cutMarks] = await Promise.all([nameplatePNG(lines), nameplatePNG(lines, 600, { cutMarks: true })]);
   return { plain, cutMarks };
 }
@@ -319,7 +319,7 @@ export function kitReadme(m: SqModel, src: SquiggleInfo, files: { name: string; 
     'Personal use only: do not sell the models, the instructions or kits made from them.',
     'Not affiliated with, sponsored or endorsed by the LEGO Group or BrickLink. LEGO® is a trademark of the LEGO Group. Parts data: Rebrickable.',
     '', 'CREDITS',
-    'Riggles is an onchain collection on Robinhood Chain (https://riggles.xyz). Built on Squiggle to Bricks by John Karp.',
+    'Riggles by Cap (@notacaptain_), an onchain collection on Robinhood Chain (https://riggles.xyz). Built on Squiggle to Bricks by John Karp.',
     `Source code (MIT License): ${SOURCE_URL}`, '');
   return out.join('\r\n');
 }

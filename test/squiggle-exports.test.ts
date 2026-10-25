@@ -173,7 +173,7 @@ describe('Squiggle exports on real models', () => {
     for (const f of files) expect(readme).toContain(f.name);
     for (const s of ['Riggle #1234 in bricks', `${m.pieces.length} pieces`, 'Upload List', 'Want → Upload', 'HANGING THE FRAME', m.hanging!.advice,
       'NOT been physically built', 'Personal use only', 'Not affiliated with, sponsored or endorsed by the LEGO Group or BrickLink',
-      'LEGO® is a trademark of the LEGO Group', 'Riggles is an onchain collection on Robinhood Chain', 'Built on Squiggle to Bricks by John Karp', 'MIT License'])
+      'LEGO® is a trademark of the LEGO Group', 'Riggles by Cap (@notacaptain_)', 'Built on Squiggle to Bricks by John Karp', 'MIT License'])
       expect(readme).toContain(s);
     expect(readme.split(m.hanging!.advice).length).toBe(2);                 // once, not repeated in the notes
     expect(readme).not.toMatch(/\bLEGO (set|kit|model)/);

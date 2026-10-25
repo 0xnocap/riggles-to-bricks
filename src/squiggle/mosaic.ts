@@ -8,7 +8,7 @@ import { arcLength, type Curve } from './curve';
 import { summarize, type Scale, type SqModel } from './model';
 import { nameplateLines } from './nameplate';
 import { endCap } from './ribbon';
-import { BLACK, WHITE, curveColors } from './spectrum';
+import { BLACK, SPECTRUM, WHITE, curveColors } from './spectrum';
 
 export const MOSAIC_GRID: Record<Scale, [number, number]> = { small: [64, 32], large: [96, 48] };
 const PLATE = 16, MARGIN = 2, BAND = 8, NAMEPLATE: [number, number] = [6, 2];
@@ -35,6 +35,17 @@ export interface PictureOptions {
    * the squares of two runs overlap across their corner.
    */
   square?: boolean;
+  /**
+   * Accordion ribs: a band one stud long across the stroke, every `pitch`
+   * studs of arc length, in `colour`.
+   *
+   * The engine stamps the accordion's squares every S/3.2 along the wave,
+   * which lands at about 1.6 studs on the large mosaic and under one stud on
+   * some riggles. Nothing finer than a stud can be built, so the ribs here
+   * keep the segmented look at a pitch bricks can hold rather than copying a
+   * spacing that would come out as noise.
+   */
+  ribs?: { pitch: number; colour: number | 'step' };
 }
 
 /** The picture: every cell takes the colour of the last curve point whose stroke covers its centre. */
@@ -62,22 +73,30 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
       }
   });
   const cells = [...last].map(i => (i < 0 ? BLACK : colors[i]));
-  // Rib bands need a rib colour. A Squiggle's ribs are grey, so ribGray says
-  // which way they go. A riggle's ribs are a brighter step of the body colour
-  // rather than a grey, so it carries no ribGray, and banding it to black here
-  // would paint the background straight through the body and cut the riggle
-  // into islands. Riggle ribs are an open item; the body stays solid.
-  if (curve.type === 'Ribbed' && curve.ribGray !== null) {
-    // rib bands straight across the stroke, 1 stud long every 2 studs of arc length: a cell's
+  // Rib bands need a rib colour, and one the background does not use: a
+  // Squiggle's ribs are grey and ribGray says which way they go, while a
+  // riggle's are a brighter step of the body colour. Banding a riggle to black
+  // here would paint the background straight through the body and cut it into
+  // islands, so the caller says what the ribs are or there are none.
+  const ribSpec = opts.ribs ?? (curve.ribGray !== null ? { pitch: 2, colour: (curve.ribGray ?? 0) < 128 ? BLACK : WHITE } : null);
+  if (curve.type === 'Ribbed' && ribSpec) {
+    // rib bands straight across the stroke, 1 stud long every `pitch` studs of arc length: a cell's
     // band is read at its nearest point on the pass drawn on top of it
-    const s = arcLength(points).map(v => v * k), rib = (curve.ribGray ?? 0) < 128 ? BLACK : WHITE;
+    const s = arcLength(points).map(v => v * k), pitch = Math.max(2, Math.round(ribSpec.pitch));
+    // 'step' takes the next colour along the spectrum, so a rib is a tighter
+    // turn of the sweep the riggle is already doing rather than a foreign colour
+    const ribOf = (c: number) => {
+      if (ribSpec.colour !== 'step') return ribSpec.colour;
+      const i = SPECTRUM.findIndex(v => v.id === c);
+      return i < 0 ? c : SPECTRUM[(i + 1) % SPECTRUM.length].id;
+    };
     last.forEach((i, key) => {
       if (i < 0) return;
       const x = key % W + 0.5, z = Math.floor(key / W) + 0.5;
       let best = i, bd = Infinity;
       for (let j = i; j >= 0 && s[i] - s[j] <= 2 * r; j--) { const d = (X[j] - x) ** 2 + (Z[j] - z) ** 2; if (d < bd) { bd = d; best = j; } }
       for (let j = i + 1; j < points.length && s[j] - s[i] <= 2 * r; j++) { const d = (X[j] - x) ** 2 + (Z[j] - z) ** 2; if (d < bd) { bd = d; best = j; } }
-      if (Math.floor(s[best]) % 2 === 1) cells[key] = rib;
+      if (Math.floor(s[best]) % pitch === 0) cells[key] = ribOf(cells[key]);
     });
   }
   return { w: W, h: H, cells, last, k, stroke: curve.stroke * k };

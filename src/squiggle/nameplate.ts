@@ -12,7 +12,7 @@ const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sa
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
 export function nameplateLines(id: number, hash: string): NameplateLines {
-  return [`Riggle #${id}`, `riggles · 2026 · 0x${hash.replace(/^0x/, '').slice(0, 8)}`];
+  return [`Riggle #${id}`, `Cap · riggles · 2026 · 0x${hash.replace(/^0x/, '').slice(0, 8)}`];
 }
 
 /** Largest size ≤ `size` at which `text` is at most `maxW` wide. Leaves ctx.font set to it. */

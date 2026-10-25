@@ -16,6 +16,7 @@
 
 import { buildRelief } from '../squiggle/display';
 import { buildMosaic } from '../squiggle/mosaic';
+
 import type { Curve } from '../squiggle/curve';
 import type { Display, Format, Scale, SqModel } from '../squiggle/model';
 import { MX, MZ } from '../squiggle/ribbon';
@@ -43,6 +44,19 @@ export const RIGGLE_GRID: Record<Scale, [number, number]> = {
   small: [48, 32],
   large: [72, 48],
 };
+
+/**
+ * Accordion ribs: a band one stud across the stroke every three studs along
+ * the wave, in the next colour along the spectrum.
+ *
+ * The engine stamps this body's squares every S/3.2, which lands at about 1.6
+ * studs on the large mosaic and under one stud on some riggles, and nothing
+ * finer than a stud can be built. Three studs is a pitch bricks can hold. The
+ * rib colour is the next step of the sweep the riggle is already doing, so it
+ * reads as a tighter turn of its own palette: white ribs came out as a barber
+ * pole and lost the colour run.
+ */
+export const RIGGLE_RIBS = { pitch: 3, colour: 'step' as const };
 
 /** Narrowest ribbon worth building: below this the tiler is left making 1x1s. */
 const MIN_WIDTH = 3;
@@ -79,7 +93,9 @@ export interface BuiltRiggle { curve: RiggleCurve; model: SqModel; width: number
  * same thing.
  */
 export function buildRiggleModel(curve: Curve, meta: { id: number; hash: string }, opts: RiggleBuild): SqModel {
-  if (opts.format === 'mosaic') return buildMosaic(curve, opts.scale, meta, RIGGLE_GRID[opts.scale], { square: true });
+  if (opts.format === 'mosaic') {
+    return buildMosaic(curve, opts.scale, meta, RIGGLE_GRID[opts.scale], { square: true, ribs: RIGGLE_RIBS });
+  }
   const panel = RIGGLE_PANEL[opts.scale];
   return buildRelief(curve, opts.display ?? 'frame', opts.scale, meta, {
     studs: opts.studs, panel, width: ribbonWidthFor(curve, panel), square: true,
