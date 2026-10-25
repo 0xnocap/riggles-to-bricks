@@ -21,9 +21,15 @@ import type { Display, Format, Scale, SqModel } from '../squiggle/model';
 import { MX, MZ } from '../squiggle/ribbon';
 import { riggleCurve, type RiggleCurve } from './curve';
 
-/** Relief panel, studs. 3:2, and 0.8 cm a stud: 36 x 24 cm and 48 x 32 cm. */
+/**
+ * Relief panel, studs. 3:2, and 0.8 cm a stud: 38.4 x 25.6 cm and 48 x 32 cm.
+ *
+ * Both sides stay even. An odd panel has no Technic run that cuts to its
+ * frame and no base plate layout that bonds across it, so a 45 wide panel
+ * builds nothing at all.
+ */
 export const RIGGLE_PANEL: Record<Scale, { w: number; h: number }> = {
-  small: { w: 45, h: 30 },
+  small: { w: 48, h: 32 },
   large: { w: 60, h: 40 },
 };
 
@@ -34,7 +40,7 @@ export const RIGGLE_GRID: Record<Scale, [number, number]> = {
 };
 
 /** Narrowest ribbon worth building: below this the tiler is left making 1x1s. */
-const MIN_WIDTH = 2;
+const MIN_WIDTH = 3;
 /** Widest ribbon: past this a Thick riggle swallows its own gaps. */
 const MAX_WIDTH = 16;
 

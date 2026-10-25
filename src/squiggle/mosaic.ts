@@ -40,7 +40,11 @@ export interface PictureOptions {
 /** The picture: every cell takes the colour of the last curve point whose stroke covers its centre. */
 export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number], opts: PictureOptions = {}): MosaicPicture {
   const [W, H] = grid ?? MOSAIC_GRID[scale], { box, points } = curve;
-  const k = Math.min((W - 2 * MARGIN) / (box.x1 - box.x0 + curve.stroke), (H - 2 * MARGIN) / (box.y1 - box.y0 + curve.stroke));
+  // A square stamp reaches the full half-width in both axes at once, so at the
+  // extremes it can claim a stud a disc would have left as margin. Half a stud
+  // of extra budget keeps the black border the rule asks for.
+  const pad = MARGIN + (opts.square ? 1 : 0);
+  const k = Math.min((W - 2 * pad) / (box.x1 - box.x0 + curve.stroke), (H - 2 * pad) / (box.y1 - box.y0 + curve.stroke));
   const pcx = (box.x0 + box.x1) / 2, pcy = (box.y0 + box.y1) / 2, r = curve.stroke * k / 2;
   const X = points.map(p => W / 2 + (p.x - pcx) * k), Z = points.map(p => H / 2 + (pcy - p.y) * k);
   // the end cap the original draws over everything (Ribbed: rib disc and dense-rib tail, Pipe: filled end dot),
