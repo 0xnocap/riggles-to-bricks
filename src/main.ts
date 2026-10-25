@@ -1,31 +1,26 @@
-// Squiggle to Bricks, the page: a Chromie Squiggle by number (or from a picture)
-// becomes brick models. ① the original next to the live 3D model, the choice of
-// model and its figures, ② the instructions reader, ③ the shopping list and the
-// order files. Everything runs in the browser; the models are built in workers.
+// Riggles to Bricks, the page: a riggle by number becomes brick models. ① the
+// riggle next to the live 3D model, the choice of model and its figures, ② the
+// instructions reader, ③ the shopping list and the order files. Everything runs
+// in the browser: the riggle is redrawn from its onchain hash by the
+// collection's own engine, and the models are built in workers.
 import { elementId } from './core/lego';
 import { orderSummary } from './export/order';
 import { brickLinkId } from './export/parts';
 import { makeBooklet, partIcon, SqPageMaker } from './squiggle/booklet';
 import { buildAll, DISPLAYS, type Builds, type ModelRequest } from './squiggle/builder';
 import { brickLinkXML, fileBase, makeKit, modelLabel, nameplateFiles, partsCSV, pickABrickFiles, pickABrickNames, shareImage, sizeText, squiggleName } from './squiggle/exports';
-import { failFromUrl, loadSquiggle, loadUpload, type Loaded } from './squiggle/load';
+import { FIRST_ID, LAST_ID, loadRiggle, riggleImage, type LoadedRiggle as Loaded } from './riggle/load';
 import type { Display, Format, Scale, SqBomLine, SqModel } from './squiggle/model';
-import { drawDots, portSquiggle } from './squiggle/port';
-import { imageUrl, SQUIGGLE_CONTRACT } from './squiggle/source';
+import { RIGGLE_GRID } from './riggle/build';
 import type { Stage } from './squiggle/stage';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const isPhone = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
 const stageModule = () => import('./squiggle/stage');
 const DISPLAY: Record<Display, string> = { frame: 'Frame', floating: 'Floating', backdrop: 'Backdrop' };
-// where the Squiggle came from: said once, under the original. How close the reading is (loaded.notes) goes in "More
-// info", with what was read; the estimated features have their own "≈ Estimated from…" label.
-const ORIGIN: Record<Loaded['origin'], string> = {
-  script: 'Redrawn in your browser with its own script, from Art Blocks.',
-  port: 'Redrawn from its hash with a copy of its script (the original one couldn’t run here).',
-  image: 'Traced from Art Blocks’ picture of it.',
-  upload: 'Traced from your picture.',
-};
+// where the riggle came from: said once, under it. Nothing is fetched and
+// nothing is traced, so there is only ever the one answer.
+const ORIGIN = 'Redrawn in your browser from its onchain hash, by the collection’s own engine.';
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const kg = (g: number) => (g >= 995 ? `${(g / 1000).toFixed(1)} kg` : `${Math.round(g / 10) * 10} g`);   // as in the booklet
 const times = (s: string) => s.replace(/(\d+) x (\d+)/g, '$1×$2');
@@ -57,10 +52,10 @@ const liveStage = () => stageP ??= stageModule().then(({ Stage }) => {
 });
 
 // ---------- input ----------
-// One history entry per Squiggle shown (?id=1234, or none for a picture): Back and Forward bring them back.
+// One history entry per riggle shown (?id=1234): Back and Forward bring them back.
 type Nav = 'push' | 'replace' | null;
-const kept = new Map<string, Loaded>();      // the last Squiggles shown, by key ('id:1234', 'up:1')
-let shownKey: string | null = null, pending = false, upSeq = 0;
+const kept = new Map<string, Loaded>();      // the last riggles shown, by key ('id:1234')
+let shownKey: string | null = null, pending = false;
 async function start(job: () => Promise<Loaded>, label: string, key: string, url: URL | null, nav: Nav) {
   const my = ++loadGen;
   pending = true;
@@ -80,7 +75,7 @@ async function start(job: () => Promise<Loaded>, label: string, key: string, url
     $('original').classList.remove('loading');
     if (first) { $('result').hidden = true; $('secnav').hidden = true; }
     const msg = (e as Error).message || 'Something went wrong.';
-    showError(msg, /upload/i.test(msg));
+    showError(msg);
     $('input-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
@@ -98,27 +93,15 @@ async function start(job: () => Promise<Loaded>, label: string, key: string, url
 function byNumber(n: number, nav: Nav = 'push') {
   $<HTMLInputElement>('sq-number').value = String(n);
   const u = new URL(location.href); u.hash = ''; u.searchParams.set('id', String(n));
-  const my = loadGen + 1;     // the load start() begins
-  start(() => loadSquiggle(n, {
-    fail: failFromUrl(),
-    onStep: s => busy(s === 'script' ? `Redrawing Squiggle #${n} with its own script…` : s === 'port' ? `Redrawing Squiggle #${n} from its hash…` : `Reading Art Blocks’ picture of Squiggle #${n}…`),
-    onSlow: () => {
-      if (my !== loadGen) return;
-      const up = document.createElement('label');
-      up.className = 'linkbtn'; up.htmlFor = 'file'; up.textContent = 'upload an image of it';
-      busy('Art Blocks is slow to answer. Still trying… or ');
-      $('busy-text').append(up, '.');
-    },
-  }), `Getting Squiggle #${n} from Art Blocks…`, `id:${n}`, u, nav);
+  start(async () => loadRiggle(n), `Drawing riggle #${n}…`, `id:${n}`, u, nav);
 }
-function byPicture(f: File) {
-  const u = new URL(location.href); u.hash = ''; u.searchParams.delete('id');
-  start(() => loadUpload(f), 'Reading your picture…', `up:${++upSeq}`, u, 'push');
-}
-/** a Squiggle number as typed or linked ("#1234", " 01234 "), or null */
-const squiggleNo = (s: string | null) => { const v = s?.trim().replace(/^#/, '') ?? ''; return /^\d+$/.test(v) && +v <= 9999 ? +v : null; };
-const urlId = () => squiggleNo(new URLSearchParams(location.search).get('id'));
-/** Back to the page as it opens: no Squiggle */
+/** a riggle number as typed or linked ("#1234", " 01234 "), or null */
+const riggleNo = (s: string | null) => {
+  const v = s?.trim().replace(/^#/, '') ?? '';
+  return /^\d+$/.test(v) && +v >= FIRST_ID && +v <= LAST_ID ? +v : null;
+};
+const urlId = () => riggleNo(new URLSearchParams(location.search).get('id'));
+/** Back to the page as it opens: no riggle */
 function landing() {
   ++loadGen; ++viewGen;
   pending = false; shownKey = null; loaded = null; builds = null; model = null;
@@ -131,13 +114,13 @@ function landing() {
 history.scrollRestoration = 'manual';
 window.addEventListener('popstate', () => {
   const key = (history.state as { key?: string } | null)?.key ?? null, id = urlId(), l = key ? kept.get(key) : undefined;
-  if (key && key === shownKey) {   // back on the Squiggle on screen: a load in progress is dropped
+  if (key && key === shownKey) {   // back on the riggle on screen: a load in progress is dropped
     if (pending) { ++loadGen; pending = false; busy(null); $('original').classList.remove('loading'); }
     return;
   }
   if (l && key) {
-    $<HTMLInputElement>('sq-number').value = l.id === null ? '' : String(l.id);
-    start(async () => l, l.id === null ? 'Reading your picture…' : `Getting Squiggle #${l.id}…`, key, null, null);
+    $<HTMLInputElement>('sq-number').value = String(l.id);
+    start(async () => l, `Drawing riggle #${l.id}…`, key, null, null);
   } else if (id !== null) byNumber(id, null);
   else landing();
 });
@@ -155,57 +138,25 @@ num.addEventListener('beforeinput', e => {   // "#1234" or " 1234 " pasted goes 
 num.closest('.num-row')!.addEventListener('click', e => { if (!(e.target as HTMLElement).closest('button')) num.focus(); });
 $('by-number').addEventListener('submit', e => {
   e.preventDefault();
-  const n = squiggleNo(num.value);
-  if (n === null) { showError('Type a Squiggle number from 0 to 9999.'); return; }
+  const n = riggleNo(num.value);
+  if (n === null) { showError(`Type a riggle number from ${FIRST_ID} to ${LAST_ID}.`); return; }
   byNumber(n);
 });
-for (const id of ['file', 'file2']) {
-  const input = $<HTMLInputElement>(id);
-  input.addEventListener('change', () => { const f = input.files?.[0]; if (f) byPicture(f); input.value = ''; });
-}
-$('upload-link').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } });
-{ // drop or paste a picture
-  const panel = $('input-panel');
-  ['dragenter', 'dragover'].forEach(t => panel.addEventListener(t, e => { e.preventDefault(); panel.classList.add('over'); }));
-  ['dragleave', 'drop'].forEach(t => panel.addEventListener(t, e => { e.preventDefault(); panel.classList.remove('over'); }));
-  panel.addEventListener('drop', e => {
-    const f = [...((e as DragEvent).dataTransfer?.files ?? [])].find(f => f.type.startsWith('image/'));
-    if (f) byPicture(f); else showError('That doesn’t look like an image. Drop a PNG or JPEG of your Squiggle.');
-  });
-  window.addEventListener('paste', e => {
-    const f = [...(e.clipboardData?.files ?? [])].find(f => f.type.startsWith('image/'));
-    if (f) byPicture(f);
-  });
-}
 
-const EXAMPLES: [number, string, string][] = [
-  [1234, 'Normal', '0xd553fb67359fc056e93dff5782a863c65889dbb1438f9ee4863cfb319724c685'],
-  [7583, 'Perfect Spectrum', '0x583840fc413a729152edfc00e4abd3a6ade316833858a3df2e0245f824a58f37'],
-  [3784, 'HyperRainbow Pipe', '0xa4783d287588dfae75c2f9e8fd0481a0c0dad09d246201e8c545015300272919'],
-  [102, 'Bold', '0x1db0e2f129b2f4bad06e3e5860357e2c676ce6fedafac40428c0caf128bff424'],
-  [1000, 'Slinky', '0xfef2aca5be3fe64a87dfc69b64622cb7377a847c2dc378a3f0ed8be794412b22'],
+const EXAMPLES: [number, string][] = [
+  [13, 'Hyper Rainbow'],
+  [17, 'Thick'],
+  [6, 'Corrugated Pipe'],
+  [2, 'Accordion'],
+  [20, 'On volt'],
 ];
-/** an example drawn here from its hash, when Art Blocks' pictures can't be reached */
-function drawnThumb(hash: string) {
-  const r = portSquiggle(hash, 252), c = document.createElement('canvas');
-  c.width = r.width; c.height = r.height;
-  drawDots(c.getContext('2d')!, r);
-  return c.toDataURL();
-}
-for (const [id, what, hash] of EXAMPLES) {
+for (const [id, what] of EXAMPLES) {
+  const l = loadRiggle(id);
   const b = document.createElement('button');
-  b.type = 'button'; b.title = `Chromie Squiggle #${id} · ${what}`;
+  b.type = 'button'; b.title = `Riggle #${id} · ${what}`;
   const img = document.createElement('img');
-  img.alt = ''; img.width = 84; img.height = 56; img.decoding = 'async'; img.referrerPolicy = 'no-referrer';
-  const drawn = () => { clearTimeout(slow); try { img.src = drawnThumb(hash); } catch { img.style.visibility = 'hidden'; } };
-  const slow = setTimeout(() => { if (!img.naturalWidth) drawn(); }, 6000);   // Art Blocks hangs: no error ever comes
-  img.onload = () => { if (img.naturalWidth) clearTimeout(slow); };
-  img.onerror = () => {
-    if (img.src.startsWith('data:')) img.style.visibility = 'hidden';
-    else if (!img.src.startsWith(imageUrl(id))) img.src = imageUrl(id);
-    else drawn();
-  };
-  img.src = `https://media-proxy.artblocks.io/1/${SQUIGGLE_CONTRACT}/thumb/${id}.png`;   // Art Blocks' own thumbnail, not hosted here
+  img.alt = ''; img.width = 84; img.height = 56; img.decoding = 'async';
+  img.src = riggleImage(l.hash, l.background, 252);
   const t = document.createElement('span');
   t.innerHTML = `<b>#${id}</b><small>${what}</small>`;
   b.append(img, t);
@@ -213,25 +164,21 @@ for (const [id, what, hash] of EXAMPLES) {
   $('examples').append(b);
 }
 
-// ---------- ① your Squiggle ----------
+// ---------- ① your riggle ----------
 function showOriginal(l: Loaded) {
   $('original').classList.remove('loading');
   const img = $<HTMLImageElement>('orig-img');
   img.src = l.original; img.hidden = false;
-  img.alt = `The original ${squiggleName(l)}`;
+  img.alt = `Riggle #${l.id}`;
   $('orig-title').textContent = squiggleName(l);
-  $('orig-origin').textContent = ORIGIN[l.origin];
-  const order = ['Type', 'Spectrum', 'Segments', 'Color Direction', 'Height', 'Steps Between', 'Color Spread', 'Start Color', 'End Color'];
+  $('orig-origin').textContent = ORIGIN;
+  const order = ['Type', 'Legendary', 'Spectrum', 'Color Family', 'Color Spread', 'Color Direction', 'Treatment', 'Steps', 'Envelope', 'Baseline', 'Intensity', 'Color Cycle', 'Animation Path', 'Background'];
   const keys = Object.keys(l.features).sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
   $('features').innerHTML = keys.map(k => `<div><dt>${esc(k)}</dt><dd>${esc(String(l.features[k]))}</dd></div>`).join('');
-  // a traced picture: its features are our reading of it, not Art Blocks' own
-  const est = l.origin === 'upload' || l.origin === 'image';
-  $('feat-box').classList.toggle('est', est); $('features').classList.toggle('est', est);
-  $('feat-est').hidden = !est;
-  $('feat-est').textContent = l.origin === 'upload' ? 'Estimated from your picture' : 'Estimated from Art Blocks’ picture';
+  $('feat-est').hidden = true;
   const link = $<HTMLAnchorElement>('orig-link');
-  link.hidden = l.id === null;
-  if (l.id !== null) link.href = `https://www.artblocks.io/token/1/${SQUIGGLE_CONTRACT}/${l.id}`;
+  link.hidden = false;
+  link.href = `https://riggles.xyz/riggle?id=${l.id}`;
   drawCurve(l);
 }
 
@@ -247,7 +194,7 @@ function drawCurve(l: Loaded) {
     x.beginPath(); x.moveTo(P[i - 1].x * k, P[i - 1].y * k); x.lineTo(P[i].x * k, P[i].y * k); x.stroke();
   }
   const f = l.features;
-  $('read-text').textContent = [`${cv.type}${f.Spectrum ? ` · ${f.Spectrum} spectrum` : ''}${f.Segments ? ` · ${f.Segments} segments` : ''} · ${P.length.toLocaleString('en')} points along its line, stroke ${Math.round(cv.stroke)} px on a ${cv.canvas.w} × ${cv.canvas.h} canvas.`, ...l.notes].join(' ');
+  $('read-text').textContent = [`${f.Type}${f.Spectrum ? ` · ${f.Spectrum} spectrum` : ''} · ${f.Steps} steps · ${P.length.toLocaleString('en')} points along its line, stroke ${Math.round(cv.stroke)} px on a ${cv.canvas.w} × ${cv.canvas.h} canvas.`, ...l.notes].join(' ');
 }
 
 async function showChoice() {
@@ -270,7 +217,8 @@ async function showChoice() {
     if (b === builds) b.get({ ...r, scale: r.scale === 'large' ? 'small' : 'large' }).then(() => { if (b === builds) renderPicker(); }, () => {});
   }, 2500);
 }
-const label = (r: ModelRequest) => r.format === 'mosaic' ? `${r.scale === 'large' ? '96 × 48' : '64 × 32'} Mosaic` : `${r.scale === 'large' ? 'Large' : 'Small'} ${DISPLAY[r.display ?? 'frame']}`;
+const gridLabel = (sc: Scale) => `${RIGGLE_GRID[sc][0]} × ${RIGGLE_GRID[sc][1]}`;
+const label = (r: ModelRequest) => r.format === 'mosaic' ? `${gridLabel(r.scale)} Mosaic` : `${r.scale === 'large' ? 'Large' : 'Small'} ${DISPLAY[r.display ?? 'frame']}`;
 
 async function show(m: SqModel) {
   const s = await liveStage();
@@ -366,7 +314,7 @@ function renderStats(m: SqModel) {
   const s = m.subtotals, stat = (k: string, v: string, sub: string[] = []) => `<div class="stat"><span class="k">${k}</span><b>${v}</b>${sub.length ? `<span class="sub">${sub.map(t => `<i>${t}</i>`).join(' ')}</span>` : ''}</div>`;
   const unit = (t: string) => t.replace(/ (kg|g)$/, '<small> $1</small>');
   const dims = m.pose === 'wall' ? 'wide × high' : m.format === 'mosaic' ? 'wide × deep' : 'wide × deep × high';
-  $('stats').innerHTML = stat('Pieces', m.pieces.length.toLocaleString('en'), [`${s.squiggle.pieces.toLocaleString('en')} Squiggle`, `+ ${s.display.pieces.toLocaleString('en')} Display`])
+  $('stats').innerHTML = stat('Pieces', m.pieces.length.toLocaleString('en'), [`${s.squiggle.pieces.toLocaleString('en')} Riggle`, `+ ${s.display.pieces.toLocaleString('en')} Display`])
     + stat('Size in cm', thin(sizeText(m).replace(/ cm$/, '')), [dims])
     + stat('Weight', `≈ ${unit(kg(m.grams))}`)
     + stat('Estimated cost', `≈ €${m.cost}`, ['at Pick a Brick prices']);
@@ -381,7 +329,7 @@ function renderChecks(m: SqModel) {
     li('ok', `${c.connections.toLocaleString('en')} studs`, 'connected between pieces'),
     c.collisions === 0 ? li('ok', '0 collisions', 'no two pieces overlap') : li('bad', `${c.collisions} collisions`, 'some pieces overlap: this model can’t be built as is'),
     c.floating === 0 ? li('ok', '0 floating', `every piece is attached to ${base}`) : li('bad', `${c.floating} floating`, `pieces not attached to ${base}: this model can’t be built as is`),
-    c.twoStud === null ? '' : c.twoStud === 0 ? li('ok', 'Held by 2+ studs', 'every piece of the Squiggle') : li('bad', `${c.twoStud} loose`, 'Squiggle pieces held by a single stud'),
+    c.twoStud === null ? '' : c.twoStud === 0 ? li('ok', 'Held by 2+ studs', 'every piece of the riggle') : li('bad', `${c.twoStud} loose`, 'riggle pieces held by a single stud'),
     c.comInside === null ? '' : c.comInside ? li('ok', 'Balanced', `centre of mass ${c.com.margin < 1 ? 'just' : Math.round(c.com.margin) === 1 ? '1 stud' : `${Math.round(c.com.margin)} studs`} inside the base`) : li('bad', 'Will tip over', 'the centre of mass is outside the base'),   // whole studs, as its rule
     c.weak === 0 ? li('ok', '0 weak joints', 'no piece hangs on a single stud') : li('warn', `${c.weak} on one stud`, m.format === 'mosaic' ? '1×1 tiles, fine lying flat' : 'fine for display, handle gently'),
   ].join('');
@@ -449,8 +397,8 @@ $('dl-share').addEventListener('click', () => run('Share image', async (m, l) =>
 function shareLink() {
   const m = model, l = loaded;
   const text = m && l
-    ? `I turned ${l.id !== null ? `Chromie Squiggle #${l.id}` : 'my Chromie Squiggle'} into a ${m.pieces.length.toLocaleString('en')}-piece brick ${m.format === 'mosaic' ? 'Mosaic' : DISPLAY[m.display ?? 'frame']} you can really build 🧱\n\nMade with Squiggle to Bricks, inspired by @victormustar's Microduck.`
-    : 'Build your Chromie Squiggle with real bricks 🧱';
+    ? `Riggle #${l.id} is now a ${m.pieces.length.toLocaleString('en')}-piece brick ${m.format === 'mosaic' ? 'Mosaic' : DISPLAY[m.display ?? 'frame']} you can really build.\n\nMade with Riggles to Bricks.`
+    : 'Build your riggle with real bricks.';
   const url = new URL(location.origin + location.pathname);
   if (l?.id != null) url.searchParams.set('id', String(l.id));
   $<HTMLAnchorElement>('share-x').href = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url.href)}`;
@@ -585,13 +533,13 @@ function renderBuy(m: SqModel) {
   const row = (name: string, lots: number, pieces: number, grams: number, cost: number, cls = '') =>
     `<div class="st${cls}"><b>${name}</b><span>${lots} lots</span><span>${pieces.toLocaleString('en')} pieces</span><span class="g">${kg(grams)}</span><span>≈ €${cost}</span></div>`;
   const q = m.subtotals.squiggle, d = m.subtotals.display;
-  $('subtot').innerHTML = row('Squiggle', q.lots, q.pieces, q.grams, q.cost) + row('Display', d.lots, d.pieces, d.grams, d.cost) + row('Total', total, m.pieces.length, m.grams, m.cost, ' total');
+  $('subtot').innerHTML = row('Riggle', q.lots, q.pieces, q.grams, q.cost) + row('Display', d.lots, d.pieces, d.grams, d.cost) + row('Total', total, m.pieces.length, m.grams, m.cost, ' total');
   const g = $('shop-grid'); g.innerHTML = '';
   for (const role of ['squiggle', 'display'] as const) {
     const lines = m.bom.filter(l => l.role === role), st = m.subtotals[role];
     if (!lines.length) continue;
     const h = document.createElement('div'); h.className = 'shop-sec';
-    h.innerHTML = `<b>${role === 'squiggle' ? 'Squiggle' : 'Display'}</b><span>${st.lots} lots · ${st.pieces.toLocaleString('en')} pieces · ${kg(st.grams)} · ≈ €${st.cost}</span>`;
+    h.innerHTML = `<b>${role === 'squiggle' ? 'Riggle' : 'Display'}</b><span>${st.lots} lots · ${st.pieces.toLocaleString('en')} pieces · ${kg(st.grams)} · ≈ €${st.cost}</span>`;
     g.append(h, ...lines.map(lotEl));
   }
   const more = $('shop-more');
@@ -662,10 +610,9 @@ function busy(text: string | null) {
   $('stage-btns').hidden = text !== null;
   if (text) $('busy-text').textContent = text;
 }
-function showError(msg: string | null, offerUpload = false) {
+function showError(msg: string | null) {
   $('error').hidden = !msg;
   $('error-text').textContent = msg ?? '';
-  $('error-upload').hidden = !offerUpload;
   if (msg) $('error').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 $('replay').addEventListener('click', () => { $('hint').hidden = true; $('reset').hidden = true; $('skip').hidden = false; stage?.play(); });
@@ -673,24 +620,25 @@ $('skip').addEventListener('click', () => stage?.skip());
 $('reset').addEventListener('click', () => { stage?.resetView(); $('reset').hidden = true; });
 
 // ---------- sticky section menu ----------
-const secLinks = [...document.querySelectorAll<HTMLAnchorElement>('#secnav a')];
-secLinks.forEach(a => a.addEventListener('click', e => {   // scrolls, without a history entry
-  e.preventDefault();
-  $(a.dataset.sec!).scrollIntoView({ behavior: 'smooth', block: 'start' });
+// The section tabs are buttons, not links to #ids: they scroll the page and
+// leave the address bar alone, so a riggle's URL is only ever ?id=1234.
+const secLinks = [...document.querySelectorAll<HTMLButtonElement>('#secnav button')];
+secLinks.forEach(b => b.addEventListener('click', () => {
+  $(b.dataset.sec!).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }));
 const secObserver = new IntersectionObserver(es => {
   for (const e of es) if (e.isIntersecting) secLinks.forEach(a => a.classList.toggle('on', a.dataset.sec === e.target.id));
 }, { rootMargin: '-45% 0px -50% 0px' });
 ['sec-model', 'sec-manual', 'sec-buy'].forEach(id => secObserver.observe($(id)));
 
-// a link to a Squiggle (?id=1234) builds it; three.js loads early when the page is idle
+// a link to a riggle (?id=1234) builds it; three.js loads early when the page is idle
 {
   const id = urlId(), raw = new URLSearchParams(location.search).get('id');
   if (id !== null) byNumber(id, 'replace');
   else {
     if (raw !== null) {   // a mistyped link says so
       num.value = raw.slice(0, 12);
-      showError(raw.trim() ? `This link asks for Squiggle #${raw.trim().replace(/^#/, '').slice(0, 12)}, which doesn’t exist. Type a Squiggle number from 0 to 9999.` : 'This link has no Squiggle number. Type one from 0 to 9999.');
+      showError(raw.trim() ? `This link asks for riggle #${raw.trim().replace(/^#/, '').slice(0, 12)}, which doesn’t exist. Type a riggle number from ${FIRST_ID} to ${LAST_ID}.` : `This link has no riggle number. Type one from ${FIRST_ID} to ${LAST_ID}.`);
     }
     setTimeout(() => { stageModule(); }, 1500);
   }

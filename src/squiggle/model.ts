@@ -8,7 +8,7 @@ import { partGrams, partPrice } from './partinfo';
 
 export type Format = 'mosaic' | 'relief';
 export type Display = 'frame' | 'floating' | 'backdrop';
-/** Mosaic: small 64×32, large 96×48. Relief: Frame panel 48×24 or 64×32 (Floating and Backdrop use the same ribbon). */
+/** The panel or grid the model was built on, in studs. Set by the builder, never assumed. */
 export type Scale = 'small' | 'large';
 export type Role = 'squiggle' | 'display';
 
@@ -48,6 +48,8 @@ export interface SqModel {
   notes: string[];
   /** size in cm as displayed: width, depth, height */
   dims: [number, number, number];
+  /** the panel or grid this model was built on, studs */
+  panel?: { w: number; h: number };
   grams: number;
   cost: number;                  // order of magnitude, EUR
   /**

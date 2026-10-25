@@ -100,13 +100,13 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 16px 32px; }
 .secnav { position: sticky; top: 0; z-index: 20; display: flex; gap: 6px; margin: 16px -16px 0; padding: 10px 16px; overflow-x: auto;
   background: var(--bg); border-bottom: 1px solid var(--line); }   /* opaque: a dark button scrolling under it never shows through */
 @media (min-width: 900px) { .secnav { margin-inline: 0; padding-inline: 0; } }
-.secnav a { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; font-weight: 600; font-size: 14px; white-space: nowrap; color: var(--muted); text-decoration: none; }
-.secnav a i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--line); color: var(--ink); font-size: 12px; font-weight: 800; flex: none; }
-.secnav a.on { background: var(--ink); color: var(--card); } .secnav a.on i { background: var(--card); color: var(--ink); }
+.secnav button { appearance: none; border: 0; background: none; cursor: pointer; font: inherit; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; font-weight: 600; font-size: 14px; white-space: nowrap; color: var(--muted); text-decoration: none; }
+.secnav button i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--line); color: var(--ink); font-size: 12px; font-weight: 800; flex: none; }
+.secnav button.on { background: var(--ink); color: var(--card); } .secnav button.on i { background: var(--card); color: var(--ink); }
 @media (max-width: 480px) {   /* all three fit a 375 px phone: "Squiggle · Instructions · Buy bricks" */
   .secnav { justify-content: space-between; gap: 2px; padding: 4px 10px; }
-  .secnav a { padding: 6px 9px; gap: 5px; font-size: 13.5px; }
-  .secnav a i { width: 18px; height: 18px; font-size: 11px; }
+  .secnav button { padding: 6px 9px; gap: 5px; font-size: 13.5px; }
+  .secnav button i { width: 18px; height: 18px; font-size: 11px; }
   .secnav .lg { display: none; }
 }
 
@@ -367,7 +367,7 @@ dialog#before-order li { margin: 6px 0; }
   .shop-more { min-height: 40px; }
   .guide .linkbtn { padding: 8px 0; }
   .secnav { padding-top: 4px; padding-bottom: 4px; }
-  .secnav a { min-height: 40px; }
+  .secnav button { min-height: 40px; }
   .stage-btns { gap: 5px; }
   .chipbtn { min-height: 40px; padding: 0 13px; font-size: 13px; }
   .more summary { min-height: 44px; }

@@ -201,7 +201,7 @@ const tight = (ms: [string, number, number][]) => {
 
 // ---- Frame ----
 
-function frame(rb: Ribbon, scale: Scale) {
+function frame(rb: Ribbon, want: { w: number; h: number }) {
   const { w: W, h: H } = rb.panel, OW = W + 2 * RING, OH = H + 2 * RING, K = kit();
   const TECH = lengths('technic', 1, BLACK), CAP = lengths('tile', 2, BLACK).filter(l => l >= 2);
   // backing, its joints off the frame's rows and the panel's edge; the white panel's off the backing's
@@ -278,7 +278,8 @@ function frame(rb: Ribbon, scale: Scale) {
   const b1 = bridging(of(back), of([...panel, ...ring])), b2 = bridging(of(panel), of(back));
   const { x0, z0, x1, z1 } = rb.bounds, hp = of(hang);
   const holesAlongX = hp.every(p => p.kind === 'technic' && p.w === 1 && p.d === 2 && p.y === -3);
-  const panelOk = W === RIBBON_PANEL[scale].w && H === RIBBON_PANEL[scale].h && panelArea === W * H && backArea === OW * OH;
+  // the panel is the one the build asked for, and it and its backing are solid
+  const panelOk = W === want.w && H === want.h && panelArea === W * H && backArea === OW * OH;
   const roomy = x0 >= 4 && W - x1 >= 4 && z0 >= 1 && H - z1 >= 1, closed = !gaps && seen.size === body.length;
   const hangOk = holesAlongX && hp[0].z > OH / 2 && hp[1].z > OH / 2 && hp[2].z < OH / 2 && hp[3].z < OH / 2;
   const rules: Rule[] = [
@@ -533,17 +534,21 @@ function advice(grams: number): string {
 
 const ribbons = new WeakMap<Curve, Map<string, Ribbon>>();
 /** the ribbon, built once per curve, scale and look: the three displays share it */
-function ribbonOf(curve: Curve, scale: Scale, studs: boolean): Ribbon {
+type RibbonFit = { panel?: { w: number; h: number }; width?: number; square?: boolean };
+
+function ribbonOf(curve: Curve, scale: Scale, studs: boolean, fit: RibbonFit = {}): Ribbon {
   let m = ribbons.get(curve);
   if (!m) ribbons.set(curve, m = new Map());
-  const k = `${scale}${studs}`;
-  if (!m.has(k)) m.set(k, buildRibbon(curve, scale, { studs }));
+  const k = `${scale}${studs}${fit.panel ? `${fit.panel.w}x${fit.panel.h}` : ''}${fit.width ?? ''}${fit.square ? 's' : ''}`;
+  if (!m.has(k)) m.set(k, buildRibbon(curve, scale, { studs, ...fit }));
   return m.get(k)!;
 }
 
-export function buildRelief(curve: Curve, display: Display, scale: Scale, meta: { id: number; hash: string }, opts: { studs?: boolean } = {}): SqModel {
-  const rb = ribbonOf(curve, scale, !!opts.studs);
-  const b = display === 'frame' ? frame(rb, scale) : standing(rb, display === 'backdrop');
+export function buildRelief(curve: Curve, display: Display, scale: Scale, meta: { id: number; hash: string }, opts: { studs?: boolean } & RibbonFit = {}): SqModel {
+  const rb = ribbonOf(curve, scale, !!opts.studs, { panel: opts.panel, width: opts.width, square: opts.square });
+  const want = opts.panel ?? RIBBON_PANEL[scale];
+  const b = display === 'frame' ? frame(rb, want) : standing(rb, display === 'backdrop');
+  const panel = { w: rb.panel.w, h: rb.panel.h };
   const { pieces, steps, stepNotes } = b.K, root = new Set(b.root);
   const ck = checkModel(pieces, { root: (_, i) => root.has(i), base: (_, i) => root.has(i) });
   const comInside = b.com ? ck.com.inside : null;
@@ -558,7 +563,7 @@ export function buildRelief(curve: Curve, display: Display, scale: Scale, meta: 
   const hanging = b.hanging ? { points: b.hanging, advice: advice(s.grams) } : null;
   if (hanging) notes.push(hanging.advice);
   return {
-    id: meta.id, format: 'relief', display, scale, pieces, steps, stepNotes,
+    id: meta.id, format: 'relief', display, scale, pieces, steps, stepNotes, panel,
     bom: s.bom, subtotals: s.subtotals, colors: s.colors,
     checks: { ...ck, twoStud: b.twoStud, comInside, rules },
     notes, dims: s.dims, grams: s.grams, cost: s.cost, pose: b.pose,

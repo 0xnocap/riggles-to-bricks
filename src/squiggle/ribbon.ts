@@ -50,7 +50,8 @@ export interface Ribbon {
 export const RIBBON_PANEL: Record<Scale, { w: number; h: number }> = { small: { w: 48, h: 24 }, large: { w: 64, h: 32 } };
 export const RIBBON_WIDTH: Record<SquiggleType, number> = { Normal: 3, Slinky: 3, Ribbed: 3, Fuzzy: 4, Bold: 7, Pipe: 5 };
 /** margins (studs), sample spacing (studs), plates per slab, most slabs */
-const MX = 4, MZ = 1, STEP = 0.25, SLAB = 3, TOP = 3;
+export const MX = 4, MZ = 1;
+const STEP = 0.25, SLAB = 3, TOP = 3;
 const NB = [1024, -1024, 1, -1];   // key offsets of the 4 neighbours
 const SPEC = new Map(SPECTRUM.map((s, i) => [s.id, i]));
 /** spectrum steps between two colours (black or white against a colour: 1.5) */
@@ -125,16 +126,29 @@ interface Region {
   own: Map<number, Pc>;                  // cell → piece
 }
 
-export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean } = {}): Ribbon {
-  const { w: W, h: H } = RIBBON_PANEL[scale], width = RIBBON_WIDTH[curve.type], r = width / 2, far = 2 * width;
+export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean; panel?: { w: number; h: number }; width?: number; square?: boolean } = {}): Ribbon {
+  const { w: W, h: H } = opts.panel ?? RIBBON_PANEL[scale], width = opts.width ?? RIBBON_WIDTH[curve.type], r = width / 2, far = 2 * width;
+  // Square footprint: a riggle's stroke is a run of axis-aligned rectangles with
+  // mitred joins and flat ends, not a chain of circles. See `disc` below.
+  const sq = !!opts.square;
   const { x0, y0, x1, y1 } = curve.box, bw = Math.max(x1 - x0, 1), bh = Math.max(y1 - y0, 1);
+  // A Squiggle's stroke is always the same fraction of its canvas, so a small
+  // one is capped to keep its loops apart. A riggle's stroke is set by its own
+  // step count and body, so the caller works the width out from the fit and
+  // this cap does not apply.
+  const kCap = opts.width != null ? Infinity : scale === 'small' ? 3 / (curve.canvas.h / 13) : Infinity;
   // the largest scale that fits: every stud of margin given up shrinks the loops, and dense ones fuse
-  const k = Math.min((W - 2 * MX - width) / bw, (H - 2 * MZ - width) / bh, scale === 'small' ? 3 / (curve.canvas.h / 13) : Infinity);
+  const k = Math.min((W - 2 * MX - width) / bw, (H - 2 * MZ - width) / bh, kCap);
   const offset = { x: MX + r + (W - 2 * MX - width - k * bw) / 2, z: MZ + r + (H - 2 * MZ - width - k * bh) / 2 };
   const arc = arcLength(curve.points);
   const line = curve.points.map((p, i) => ({ x: offset.x + (p.x - x0) * k, z: offset.z + (y1 - p.y) * k, s: arc[i] * k }));
-  // the end dot: a disc as wide as the stroke (Ribbed: its rib, a little wider), drawn over everything
-  const cap = capOf(curve, 1.5 / k), colors = endCap(curve, curveColors(curve, 2 / k), 1.5 / k, 1 / k);
+  // the end dot: a disc as wide as the stroke (Ribbed: its rib, a little wider), drawn over everything.
+  // A riggle has no end dot. Its engine draws each segment as a rectangle run on
+  // half a stroke past both its vertices, so the flat end falls out of the square
+  // footprint on its own and nothing is stamped over it.
+  const plainColors = curveColors(curve, 2 / k);
+  const cap = sq ? null : capOf(curve, 1.5 / k);
+  const colors = sq ? plainColors : endCap(curve, plainColors, 1.5 / k, 1 / k);
   const capR = (curve.type === 'Ribbed' ? 1.08 : 1) * 1.5;
   const ribC = (curve.ribGray ?? 0) < 128 ? BLACK : WHITE;
 
@@ -155,8 +169,13 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean 
   /** the cells whose centre is within R of (X, Z), with that distance */
   const disc = (X: number, Z: number, R: number, f: (c: number, d: number) => void) => {
     for (let cx = Math.ceil(X - R - 0.5); cx <= Math.floor(X + R - 0.5); cx++) for (let cz = Math.ceil(Z - R - 0.5); cz <= Math.floor(Z + R - 0.5); cz++) {
-      const d = Math.hypot(cx + 0.5 - X, cz + 0.5 - Z);
-      if (d <= R) f(key(cx, cz), d);
+      const dx = cx + 0.5 - X, dz = cz + 0.5 - Z, d = Math.hypot(dx, dz);
+      // `d` stays the true distance even when the footprint is square: it picks
+      // which sample owns a cell, and so which colour it takes. Measuring it the
+      // square way ties every sample within the half-width, handing the cell to
+      // one up to half a stroke earlier along the line and slanting the colour
+      // boundaries instead of keeping them square across the run.
+      if (sq ? Math.max(Math.abs(dx), Math.abs(dz)) <= R : d <= R) f(key(cx, cz), d);
     }
   };
 

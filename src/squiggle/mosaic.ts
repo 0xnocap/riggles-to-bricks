@@ -23,23 +23,51 @@ export interface MosaicPicture {
   stroke: number;            // stroke width, studs
 }
 
-/** The picture: every cell takes the colour of the last curve point whose stroke disc covers its centre. */
-export function mosaicPicture(curve: Curve, scale: Scale): MosaicPicture {
-  const [W, H] = MOSAIC_GRID[scale], { box, points } = curve;
-  const k = Math.min((W - 2 * MARGIN) / (box.x1 - box.x0 + curve.stroke), (H - 2 * MARGIN) / (box.y1 - box.y0 + curve.stroke));
+export interface PictureOptions {
+  /**
+   * Stamp a square at every point instead of a disc, and leave the end dot off.
+   *
+   * A Squiggle is a smooth curve drawn as a chain of overlapping circles, so a
+   * disc is what its stroke really is. A riggle is a square wave the engine
+   * draws as axis-aligned rectangles with mitred joins and flat ends, so discs
+   * round off the one thing that makes it a riggle. Marching a square gives the
+   * straight runs, the mitred corners and the flat ends all at once, because
+   * the squares of two runs overlap across their corner.
+   */
+  square?: boolean;
+}
+
+/** The picture: every cell takes the colour of the last curve point whose stroke covers its centre. */
+export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number], opts: PictureOptions = {}): MosaicPicture {
+  const [W, H] = grid ?? MOSAIC_GRID[scale], { box, points } = curve;
+  // A square stamp reaches the full half-width in both axes at once, so at the
+  // extremes it can claim a stud a disc would have left as margin. Half a stud
+  // of extra budget keeps the black border the rule asks for.
+  const pad = MARGIN + (opts.square ? 1 : 0);
+  const k = Math.min((W - 2 * pad) / (box.x1 - box.x0 + curve.stroke), (H - 2 * pad) / (box.y1 - box.y0 + curve.stroke));
   const pcx = (box.x0 + box.x1) / 2, pcy = (box.y0 + box.y1) / 2, r = curve.stroke * k / 2;
   const X = points.map(p => W / 2 + (p.x - pcx) * k), Z = points.map(p => H / 2 + (pcy - p.y) * k);
   // the end cap the original draws over everything (Ribbed: rib disc and dense-rib tail, Pipe: filled end dot),
   // from the end point on: its disc is the dot; the colours before it catch up with its colour one step a stud
-  const colors = endCap(curve, curveColors(curve, 2 / k), 0, 1 / k), last = new Int32Array(W * H).fill(-1);
+  const plain = curveColors(curve, 2 / k);
+  const colors = opts.square ? plain : endCap(curve, plain, 0, 1 / k);
+  const last = new Int32Array(W * H).fill(-1);
   points.forEach((_, i) => {
     const cx = X[i], cz = Z[i];
     for (let x = Math.max(0, Math.ceil(cx - r - 0.5)); x <= Math.min(W - 1, Math.floor(cx + r - 0.5)); x++)
-      for (let z = Math.max(0, Math.ceil(cz - r - 0.5)); z <= Math.min(H - 1, Math.floor(cz + r - 0.5)); z++)
-        if ((x + 0.5 - cx) ** 2 + (z + 0.5 - cz) ** 2 <= r * r) last[x + z * W] = i;
+      for (let z = Math.max(0, Math.ceil(cz - r - 0.5)); z <= Math.min(H - 1, Math.floor(cz + r - 0.5)); z++) {
+        const dx = x + 0.5 - cx, dz = z + 0.5 - cz;
+        const inside = opts.square ? Math.abs(dx) <= r && Math.abs(dz) <= r : dx * dx + dz * dz <= r * r;
+        if (inside) last[x + z * W] = i;
+      }
   });
   const cells = [...last].map(i => (i < 0 ? BLACK : colors[i]));
-  if (curve.type === 'Ribbed') {
+  // Rib bands need a rib colour. A Squiggle's ribs are grey, so ribGray says
+  // which way they go. A riggle's ribs are a brighter step of the body colour
+  // rather than a grey, so it carries no ribGray, and banding it to black here
+  // would paint the background straight through the body and cut the riggle
+  // into islands. Riggle ribs are an open item; the body stays solid.
+  if (curve.type === 'Ribbed' && curve.ribGray !== null) {
     // rib bands straight across the stroke, 1 stud long every 2 studs of arc length: a cell's
     // band is read at its nearest point on the pass drawn on top of it
     const s = arcLength(points).map(v => v * k), rib = (curve.ribGray ?? 0) < 128 ? BLACK : WHITE;
@@ -412,8 +440,9 @@ function tileOnBase(pic: MosaicPicture, np: Rect) {
   return { layout, seams, ...tilePicture(p, layout, seams, [np]), cells: p.cells, recoloured };
 }
 
-export function buildMosaic(curve: Curve, scale: Scale, meta: { id: number; hash: string }): SqModel {
-  const pic = mosaicPicture(curve, scale), { w: W, h: H } = pic;
+export function buildMosaic(curve: Curve, scale: Scale, meta: { id: number; hash: string }, grid?: [number, number], opts: PictureOptions = {}): SqModel {
+  const want = grid ?? MOSAIC_GRID[scale];
+  const pic = mosaicPicture(curve, scale, grid, opts), { w: W, h: H } = pic;
   // the nameplate: a black 2×6 tile in the bottom-right corner of the margin
   const np: Rect = { x: W - NAMEPLATE[0], z: 0, w: NAMEPLATE[0], d: NAMEPLATE[1], c: BLACK };
   const { layout: { xs, zs }, seams, rects, cells, recoloured } = tileOnBase(pic, np);
@@ -453,7 +482,7 @@ export function buildMosaic(curve: Curve, scale: Scale, meta: { id: number; hash
     twoStud: null, comInside: null,
     rules: [
       {
-        name: 'Every stud covered', ok: covered && W === MOSAIC_GRID[scale][0] && H === MOSAIC_GRID[scale][1],
+        name: 'Every stud covered', ok: covered && W === want[0] && H === want[1],
         detail: covered ? `Tiles cover the whole ${W}×${H} mosaic, with no gap or overlap`
           : bare || overlap ? `${plural(bare, 'stud')} left bare, ${overlap} covered twice` : `The base plates don’t fill the ${W}×${H} mosaic`,
       },
@@ -481,7 +510,7 @@ export function buildMosaic(curve: Curve, scale: Scale, meta: { id: number; hash
   if (missing.length) notes.push(`Not sold by LEGO Pick a Brick: ${missing.map(l => `${l.name} ${l.colorName}`).join(', ')}.`);
 
   return {
-    id: meta.id, format: 'mosaic', display: null, scale, pieces, steps,
+    id: meta.id, format: 'mosaic', display: null, scale, pieces, steps, panel: { w: W, h: H },
     stepNotes: { 0: `Lay the ${steps[0].length} base plates edge to edge on a flat table: the tiles on top join them.` },
     bom: s.bom, subtotals: s.subtotals, colors: s.colors, checks, notes, dims: s.dims, grams: s.grams, cost: s.cost,
     pose: 'table', nameplate: { lines: nameplateLines(meta.id, meta.hash), piece: npIndex }, hanging: null,

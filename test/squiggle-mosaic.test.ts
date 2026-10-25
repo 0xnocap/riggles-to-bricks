@@ -70,7 +70,7 @@ describe('mosaic', () => {
       expect(own.every(i => i >= 0)).toBe(true);
       // roles: coloured tiles are the Squiggle, the rest is the display
       expect(m.pieces.every(p => p.role === (p.kind === 'tile' && p.c !== BLACK ? 'squiggle' : 'display'))).toBe(true);
-      expect(m.nameplate?.lines[0]).toBe(`Chromie Squiggle #${id}`);
+      expect(m.nameplate?.lines[0]).toBe(`Riggle #${id}`);
       expect(m.pieces[m.nameplate!.piece]).toMatchObject({ kind: 'tile', w: 6, d: 2, c: BLACK, nameplate: true });
 
       // steps: every piece once, the plates first, then the tiles band by band from the front

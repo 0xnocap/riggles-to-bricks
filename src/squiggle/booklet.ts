@@ -1,4 +1,4 @@
-// The Squiggle instruction booklet: cover, parts inventory (Squiggle then
+// The riggle instruction booklet: cover, parts inventory (riggle then
 // Display), one page per build step, Nameplate, Hanging (Frame), last page.
 // Steps are drawn flat, with rulers: seen from above (the Mosaic's bands, every
 // ribbon layer, the Frame's backing, panel, Technic rows and cap, the base), the
@@ -12,18 +12,19 @@ import { elementId } from '../core/lego';
 import { COLOR_BY_ID, renderHex, TRANS_CLEAR } from '../core/palette';
 import type { Kind, Piece } from '../core/parts';
 import type { Curve } from './curve';
-import { squiggleName } from './exports';
+import { RIGGLE_GRID, RIGGLE_PANEL } from '../riggle/build';
+import { SITE_NAME, squiggleName } from './exports';
 import { STUD_CM, type Role, type SqBomLine, type SqModel } from './model';
 import { drawNameplate, NAMEPLATE_MM } from './nameplate';
 import { BLACK, SPECTRUM, WHITE } from './spectrum';
 import type { View } from './stage';
 import type { P3, Pt, Shot, Side, StepRender } from './stepRender';
 
-/** What the booklet needs of a loaded Squiggle (a `Loaded` from load.ts fits). */
+/** What the booklet needs of a loaded riggle. */
 export interface BookletSource {
   id: number | null; hash: string | null;
   features: Record<string, string | number>;
-  origin?: 'script' | 'port' | 'image' | 'upload';
+  origin?: 'script' | 'port' | 'image' | 'upload' | 'engine';
   /** the original picture: URL or data URL */
   original: string;
   curve?: Curve;
@@ -233,7 +234,7 @@ export const lotLines = (l: Pick<SqBomLine, 'kind' | 'w' | 'd' | 'h'>): string[]
 };
 export const invRowHeight = (lines: SqBomLine[]) => INV.row + (lines.some(l => lotLines(l).length > 1) ? INV.line : 0);
 
-/** The inventory's pages: Squiggle then Display, each headed by its subtotal, lots in rows. */
+/** The inventory's pages: riggle then Display, each headed by its subtotal, lots in rows. */
 export function inventoryPages(m: SqModel): InvRow[][] {
   const pages: InvRow[][] = [[]];
   let page = pages[0], y = INV.top;
@@ -360,7 +361,7 @@ function footer(x: Ctx, n: number, title: string) {
   x.fillStyle = BAND; x.fillRect(0, PH - FOOT, PW, FOOT);
   x.fillStyle = INK; font(x, 26, 700); x.textAlign = 'left'; x.fillText(title, 60, PH - 36);
   x.textAlign = 'right'; x.fillText(String(n), PW - 60, PH - 36);
-  font(x, 20); x.fillStyle = SUB; x.fillText('Squiggle to Bricks', PW - 120, PH - 37); x.textAlign = 'left';
+  font(x, 20); x.fillStyle = SUB; x.fillText(SITE_NAME, PW - 120, PH - 37); x.textAlign = 'left';
 }
 /** the finished model's render, its background colour, and how far its top and bottom edges may fade (px) */
 interface Hero { img: HTMLCanvasElement; bg: string; fade: number }
@@ -385,9 +386,13 @@ function sizeText(m: SqModel) {
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 /** "Frame · Large · 64 × 32 studs" (the white panel), "Floating · Large · 48 × 40 studs" (the base), "Mosaic · 96 × 48 studs" */
 export function modelTitle(m: SqModel): string {
-  if (m.format === 'mosaic') return `Mosaic · ${m.scale === 'large' ? '96 × 48' : '64 × 32'} studs`;
+  // The panel comes off the model that was actually built. A copy of the
+  // constants here went stale the moment the panels were recut for riggles,
+  // and every booklet cover then claimed a size the model did not have.
+  const p = m.panel;
+  if (m.format === 'mosaic') return `Mosaic · ${p ? `${p.w} × ${p.h}` : `${RIGGLE_GRID[m.scale][0]} × ${RIGGLE_GRID[m.scale][1]}`} studs`;
   const d = m.display ?? 'frame', size = m.scale === 'large' ? 'Large' : 'Small';
-  if (d === 'frame') return `Frame · ${size} · ${m.scale === 'large' ? '64 × 32' : '48 × 24'} studs`;
+  if (d === 'frame') return `Frame · ${size} · ${p ? `${p.w} × ${p.h}` : `${RIGGLE_PANEL[m.scale].w} × ${RIGGLE_PANEL[m.scale].h}`} studs`;
   const base = m.pieces.filter(p => p.y === 0), ext = (a: 'x' | 'z', b: 'w' | 'd') => Math.max(...base.map(p => p[a] + p[b])) - Math.min(...base.map(p => p[a]));
   return `${cap(d)} · ${size} · ${ext('x', 'w')} × ${ext('z', 'd')} studs`;
 }
@@ -808,7 +813,7 @@ export class SqPageMaker {
   private sr: Promise<StepRender> | null = null;
   private heroes = new Map<string, Promise<Hero>>();
   private orig: Promise<HTMLCanvasElement> | null = null;
-  /** "Chromie Squiggle #1234 · Frame · Large · 64 × 32 studs", in every footer */
+  /** "Riggle #1234 · Frame · Large · 60 × 40 studs", in every footer */
   readonly title: string;
   private disposed = false;
   private stepOf: number[] = [];
@@ -866,7 +871,7 @@ export class SqPageMaker {
     return this.heroes.get(k)!;
   }
 
-  /** the original Squiggle as a canvas (the picture, else redrawn from the curve) */
+  /** the riggle as a canvas (the picture, else redrawn from the curve) */
   private original(): Promise<HTMLCanvasElement> {
     return this.orig ??= new Promise<HTMLImageElement | null>(ok => {
       if (!this.src.original) return ok(null);
@@ -895,7 +900,7 @@ export class SqPageMaker {
     const { m, src } = this, [hero, orig] = await Promise.all([this.hero('cover', PW, 640), this.original()]);
     const [pg, x] = blank(hero.bg);
     drawHero(x, hero, 158);
-    x.fillStyle = INK; font(x, 22, 700); x.fillText('SQUIGGLE TO BRICKS · BUILDING INSTRUCTIONS', 64, 62);
+    x.fillStyle = INK; font(x, 22, 700); x.fillText(`${SITE_NAME.toUpperCase()} · BUILDING INSTRUCTIONS`, 64, 62);
     font(x, 70, 800); x.fillText(squiggleName(src), 60, 138);
     font(x, 30); x.fillStyle = SUB; x.textAlign = 'right';
     x.fillText(m.format === 'mosaic' ? modelTitle(m) : `Relief · ${modelTitle(m)}`, PW - 64, 136); x.textAlign = 'left';
@@ -904,10 +909,10 @@ export class SqPageMaker {
     x.save(); x.shadowColor = 'rgba(20,35,50,.25)'; x.shadowBlur = 18; x.shadowOffsetY = 6;
     x.fillStyle = '#fff'; x.fillRect(ox - 10, oy - 10, ow + 20, oh + 20); x.restore();
     x.drawImage(orig, ox, oy, ow, oh);
-    x.fillStyle = SUB; font(x, 19, 600); x.fillText(src.origin === 'upload' ? 'THE ORIGINAL (UPLOADED)' : 'THE ORIGINAL · ART BLOCKS', ox - 8, oy - 24);
+    x.fillStyle = SUB; font(x, 19, 600); x.fillText('THE RIGGLE · ONCHAIN', ox - 8, oy - 24);
     // key figures
     const figs: [string, string][] = [
-      [m.pieces.length.toLocaleString('en'), `pieces (Squiggle ${m.subtotals.squiggle.pieces} · Display ${m.subtotals.display.pieces})`],
+      [m.pieces.length.toLocaleString('en'), `pieces (riggle ${m.subtotals.squiggle.pieces} · display ${m.subtotals.display.pieces})`],
       [sizeText(m).split(',')[0], sizeText(m).split(', ')[1]],
       [kg(m.grams), 'estimated weight'],
       [`≈ €${Math.round(m.cost)}`, 'order of magnitude, Pick a Brick prices'],
@@ -923,7 +928,7 @@ export class SqPageMaker {
       x.fillStyle = SUB; fitText(x, l, X, Y + 34, cols[c] + gap / 2, 20);
     });
     font(x, 16); x.fillStyle = SUB; x.textAlign = 'right';
-    x.fillText('Unofficial · not affiliated with Art Blocks, the LEGO Group or BrickLink · computer-checked, not physically built · personal use only', PW - 64, PH - 24);
+    x.fillText('Not affiliated with the LEGO Group or BrickLink · computer-checked, not physically built · personal use only', PW - 64, PH - 24);
     x.textAlign = 'left';
     return pg;
   }
@@ -1246,13 +1251,19 @@ export class SqPageMaker {
     drawHero(x, hero, 110);
     x.fillStyle = INK; font(x, 56, 800); x.fillText(`${squiggleName(src)}, in bricks`, 60, 92);
     x.fillStyle = SUB; font(x, 26); x.textAlign = 'right'; x.fillText('Finished', PW - 64, 90); x.textAlign = 'left';
-    const origin = { script: 'Redrawn from Art Blocks’ public API with the Squiggle’s own script.', port: 'Redrawn from Art Blocks’ token data with a port of the Squiggle’s script.', image: 'Read from Art Blocks’ picture of the token: the variant details are approximate.', upload: 'Read from an uploaded picture: the variant details are approximate.' };
+    const origin = {
+      engine: 'Redrawn from its onchain hash by the collection’s own engine.',
+      script: 'Redrawn from Art Blocks’ public API with the Squiggle’s own script.',
+      port: 'Redrawn from Art Blocks’ token data with a port of the Squiggle’s script.',
+      image: 'Read from Art Blocks’ picture of the token: the variant details are approximate.',
+      upload: 'Read from an uploaded picture: the variant details are approximate.',
+    };
     const rows = [
-      'Chromie Squiggle by Snowfro / Art Blocks. Made by John Karp. Inspired by @victormustar’s Microduck.',
+      'Riggles is an onchain collection on Robinhood Chain. Built on Squiggle to Bricks by John Karp.',
       ...(src.origin ? [origin[src.origin]] : []),
-      'Unofficial fan project for personal use only, not for sale. Not affiliated with, sponsored or endorsed by Art Blocks, the LEGO Group or BrickLink.',
+      'For personal use only, not for sale. Not affiliated with, sponsored or endorsed by the LEGO Group or BrickLink.',
       'Models are generated automatically and checked by software only: they have not been physically built. Provided “as is”, without warranty of any kind.',
-      'LEGO® is a trademark of the LEGO Group. Parts data: Rebrickable. Source: github.com/hs7j4yk4sz-boop/squiggle-to-bricks (MIT License).',
+      'LEGO® is a trademark of the LEGO Group. Parts data: Rebrickable. Source: github.com/0xnocap/riggles-to-bricks (MIT License).',
     ];
     let y = 890;
     font(x, 21);
@@ -1307,7 +1318,7 @@ export async function makeBooklet(m: SqModel, src: BookletSource, onProgress?: (
   const { jsPDF } = await import('jspdf');
   const pm = new SqPageMaker(m, src, o);
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-  pdf.setProperties({ title: `${squiggleName(src)} in bricks · ${modelTitle(m)} · building instructions`, creator: 'Squiggle to Bricks' });
+  pdf.setProperties({ title: `${squiggleName(src)} in bricks · ${modelTitle(m)} · building instructions`, creator: SITE_NAME });
   try {
     for (let n = 1; n <= pm.total; n++) {
       if (n > 1) pdf.addPage('a4', 'landscape');

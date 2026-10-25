@@ -16,24 +16,24 @@ import { SPECTRUM, WHITE } from './spectrum';
 export interface SquiggleInfo {
   id: number | null; hash: string | null;
   original: string;                 // image URL or data URL of the original
-  origin?: 'script' | 'port' | 'image' | 'upload';
+  origin?: 'script' | 'port' | 'image' | 'upload' | 'engine';
   notes?: string[];
 }
 
-export const SITE_NAME = 'Squiggle to Bricks';
-export const SITE_URL = 'https://hs7j4yk4sz-boop.github.io/squiggle-to-bricks/';
-const SOURCE_URL = 'https://github.com/hs7j4yk4sz-boop/squiggle-to-bricks';
-const SECTION: Record<Role, string> = { squiggle: 'Squiggle', display: 'Display' };
+export const SITE_NAME = 'Riggles to Bricks';
+export const SITE_URL = 'https://0xnocap.github.io/riggles-to-bricks/';
+const SOURCE_URL = 'https://github.com/0xnocap/riggles-to-bricks';
+const SECTION: Record<Role, string> = { squiggle: 'Riggle', display: 'Display' };
 const DISPLAY = { frame: 'Frame', floating: 'Floating', backdrop: 'Backdrop' };
 
 // ---------- names and figures ----------
 
-/** "Chromie Squiggle #1234" (or "My Chromie Squiggle" for an upload without a number) */
-export const squiggleName = (src: SquiggleInfo) => (src.id !== null ? `Chromie Squiggle #${src.id}` : 'My Chromie Squiggle');
+/** "Riggle #1234" */
+export const squiggleName = (src: SquiggleInfo) => (src.id !== null ? `Riggle #${src.id}` : 'Riggle');
 
-/** Base of every file name: squiggle-1234-frame-large, squiggle-1234-mosaic-small… */
+/** Base of every file name: riggle-1234-frame-large, riggle-1234-mosaic-small… */
 export const fileBase = (m: SqModel, src: SquiggleInfo) =>
-  `squiggle-${src.id ?? 'upload'}-${m.format === 'mosaic' ? 'mosaic' : m.display ?? 'relief'}-${m.scale}`;
+  `riggle-${src.id ?? 0}-${m.format === 'mosaic' ? 'mosaic' : m.display ?? 'relief'}-${m.scale}`;
 
 /** "Frame · Large", "Mosaic · 96 × 48 studs" */
 export function modelLabel(m: SqModel): string {
@@ -87,7 +87,7 @@ export const pickABrickNames = (m: SqModel, src: SquiggleInfo, n = pickABrickFil
 
 /** The nameplate at real size (600 dpi): plain, and on a white sheet with cut marks. */
 export async function nameplateFiles(m: SqModel): Promise<{ plain: Blob; cutMarks: Blob }> {
-  const lines = m.nameplate?.lines ?? [`Chromie Squiggle #${m.id}`, 'Snowfro · Art Blocks · 2020'];
+  const lines = m.nameplate?.lines ?? [`Riggle #${m.id}`, 'riggles · 2026'];
   const [plain, cutMarks] = await Promise.all([nameplatePNG(lines), nameplatePNG(lines, 600, { cutMarks: true })]);
   return { plain, cutMarks };
 }
@@ -317,9 +317,9 @@ export function kitReadme(m: SqModel, src: SquiggleInfo, files: { name: string; 
     'Models are generated automatically and checked by software only. They have NOT been physically built. Parts may be missing, wrong or unavailable, and the result may not hold together.',
     'Weights and prices are estimates. Provided "as is", without warranty of any kind. Use at your own risk.',
     'Personal use only: do not sell the models, the instructions or kits made from them.',
-    'Unofficial fan project · Not affiliated with, sponsored or endorsed by Art Blocks, the LEGO Group or BrickLink. LEGO® is a trademark of the LEGO Group. Parts data: Rebrickable.',
+    'Not affiliated with, sponsored or endorsed by the LEGO Group or BrickLink. LEGO® is a trademark of the LEGO Group. Parts data: Rebrickable.',
     '', 'CREDITS',
-    "Chromie Squiggle by Snowfro / Art Blocks. Made by John Karp. Inspired by @victormustar's Microduck (https://x.com/victormustar).",
+    'Riggles is an onchain collection on Robinhood Chain (https://riggles.xyz). Built on Squiggle to Bricks by John Karp.',
     `Source code (MIT License): ${SOURCE_URL}`, '');
   return out.join('\r\n');
 }

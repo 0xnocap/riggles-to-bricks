@@ -129,7 +129,7 @@ describe('Squiggle exports on real models', () => {
     expect(body.reduce((a, r) => a + +r[q], 0)).toBe(n);
     expect(total[0]).toBe('TOTAL');
     expect(+total[q]).toBe(n);
-    for (const [role, name] of [['squiggle', 'Squiggle'], ['display', 'Display']] as const) {
+    for (const [role, name] of [['squiggle', 'Riggle'], ['display', 'Display']] as const) {
       const sec = body.filter(r => r[0] === name);
       expect(sec.length).toBe(m.subtotals[role].lots);
       expect(sec.reduce((a, r) => a + +r[q], 0)).toBe(m.subtotals[role].pieces);
@@ -155,7 +155,7 @@ describe('Squiggle exports on real models', () => {
 
   it('the kit ZIP holds every file, the README explains them', async () => {
     const m = model(1234, 'frame', 'large'), src = info(1234), base = fileBase(m, src);
-    expect(base).toBe('squiggle-1234-frame-large');
+    expect(base).toBe('riggle-1234-frame-large');
     const booklet = new Blob(['%PDF-1.4 booklet'], { type: 'application/pdf' });
     const png = (s: string) => new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47]), s], { type: 'image/png' });
     const zip = await makeKit(m, src, booklet, { share: png('share'), nameplate: { plain: png('plain'), cutMarks: png('cut') } });
@@ -171,9 +171,9 @@ describe('Squiggle exports on real models', () => {
     expect(text(`${base}-share.png`).endsWith('share')).toBe(true);
     const readme = text('README.txt');
     for (const f of files) expect(readme).toContain(f.name);
-    for (const s of ['Chromie Squiggle #1234 in bricks', `${m.pieces.length} pieces`, 'Upload List', 'Want → Upload', 'HANGING THE FRAME', m.hanging!.advice,
-      'NOT been physically built', 'Personal use only', 'Not affiliated with, sponsored or endorsed by Art Blocks, the LEGO Group or BrickLink',
-      'LEGO® is a trademark of the LEGO Group', 'Snowfro / Art Blocks', 'Made by John Karp', "@victormustar's Microduck", 'MIT License'])
+    for (const s of ['Riggle #1234 in bricks', `${m.pieces.length} pieces`, 'Upload List', 'Want → Upload', 'HANGING THE FRAME', m.hanging!.advice,
+      'NOT been physically built', 'Personal use only', 'Not affiliated with, sponsored or endorsed by the LEGO Group or BrickLink',
+      'LEGO® is a trademark of the LEGO Group', 'Riggles is an onchain collection on Robinhood Chain', 'Built on Squiggle to Bricks by John Karp', 'MIT License'])
       expect(readme).toContain(s);
     expect(readme.split(m.hanging!.advice).length).toBe(2);                 // once, not repeated in the notes
     expect(readme).not.toMatch(/\bLEGO (set|kit|model)/);
