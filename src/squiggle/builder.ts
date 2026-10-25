@@ -10,7 +10,9 @@ import { SourceError } from './source';
 import type { BuildJob, WorkerReply, WorkerRequest } from './worker';
 
 export type ModelRequest = { format: Format; display?: Display | null; scale: Scale; studs?: boolean };
-export const DISPLAYS: Display[] = ['frame', 'floating', 'backdrop'];
+// Backdrop is built but not offered: Cap cut it from the page on 2026-10-25.
+// The builder keeps it, so it is one entry away if it ever comes back.
+export const DISPLAYS: Display[] = ['frame', 'floating'];
 export const SCALES: Scale[] = ['large', 'small'];
 
 export interface Builds {
