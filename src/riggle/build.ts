@@ -70,6 +70,6 @@ export function buildRiggle(id: number, hash: string, opts: RiggleBuild): BuiltR
   }
   const panel = RIGGLE_PANEL[opts.scale];
   const width = ribbonWidthFor(curve, panel);
-  const model = buildRelief(curve, opts.display ?? 'frame', opts.scale, meta, { studs: opts.studs, panel, width });
+  const model = buildRelief(curve, opts.display ?? 'frame', opts.scale, meta, { studs: opts.studs, panel, width, square: true });
   return { curve, model, width };
 }

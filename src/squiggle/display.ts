@@ -534,18 +534,18 @@ function advice(grams: number): string {
 
 const ribbons = new WeakMap<Curve, Map<string, Ribbon>>();
 /** the ribbon, built once per curve, scale and look: the three displays share it */
-type RibbonFit = { panel?: { w: number; h: number }; width?: number };
+type RibbonFit = { panel?: { w: number; h: number }; width?: number; square?: boolean };
 
 function ribbonOf(curve: Curve, scale: Scale, studs: boolean, fit: RibbonFit = {}): Ribbon {
   let m = ribbons.get(curve);
   if (!m) ribbons.set(curve, m = new Map());
-  const k = `${scale}${studs}${fit.panel ? `${fit.panel.w}x${fit.panel.h}` : ''}${fit.width ?? ''}`;
+  const k = `${scale}${studs}${fit.panel ? `${fit.panel.w}x${fit.panel.h}` : ''}${fit.width ?? ''}${fit.square ? 's' : ''}`;
   if (!m.has(k)) m.set(k, buildRibbon(curve, scale, { studs, ...fit }));
   return m.get(k)!;
 }
 
 export function buildRelief(curve: Curve, display: Display, scale: Scale, meta: { id: number; hash: string }, opts: { studs?: boolean } & RibbonFit = {}): SqModel {
-  const rb = ribbonOf(curve, scale, !!opts.studs, { panel: opts.panel, width: opts.width });
+  const rb = ribbonOf(curve, scale, !!opts.studs, { panel: opts.panel, width: opts.width, square: opts.square });
   const want = opts.panel ?? RIBBON_PANEL[scale];
   const b = display === 'frame' ? frame(rb, want) : standing(rb, display === 'backdrop');
   const { pieces, steps, stepNotes } = b.K, root = new Set(b.root);
