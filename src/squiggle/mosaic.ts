@@ -10,7 +10,7 @@ import { GREYS as GREY_RAMP, greyCoord, paletteCoord } from './spectrum';
 import { summarize, type Scale, type SqModel } from './model';
 import { nameplateLines } from './nameplate';
 import { endCap } from './ribbon';
-import { BLACK, GREYS, SPECTRUM, WHITE, curveColors } from './spectrum';
+import { BLACK, GREYS, LIGHT_OF, SPECTRUM, WHITE, curveColors } from './spectrum';
 
 export const MOSAIC_GRID: Record<Scale, [number, number]> = { small: [64, 32], large: [96, 48] };
 const PLATE = 16, MARGIN = 2, BAND = 8, NAMEPLATE: [number, number] = [6, 2];
@@ -47,7 +47,7 @@ export interface PictureOptions {
    * keep the segmented look at a pitch bricks can hold rather than copying a
    * spacing that would come out as noise.
    */
-  ribs?: { pitch: number; colour: number | 'step' };
+  ribs?: { pitch: number; colour: number | 'step' | 'light' };
   /**
    * A Pixelated riggle's own cells, straight from the engine, in canvas
    * pixels. When these are given the picture is built from them instead of
@@ -131,6 +131,7 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
     // 'step' takes the next colour along the spectrum, so a rib is a tighter
     // turn of the sweep the riggle is already doing rather than a foreign colour
     const ribOf = (c: number) => {
+      if (ribSpec.colour === 'light') return LIGHT_OF[c] ?? GREYS[GREYS.length - 1];
       if (ribSpec.colour !== 'step') return ribSpec.colour;
       const g = GREYS.indexOf(c);
       if (g >= 0) return GREYS[(g + 1) % GREYS.length];

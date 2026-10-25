@@ -39,7 +39,27 @@ export function greyCoord(light: number): number {
   const t = Math.max(0, Math.min(1, (light - GREY_LO) / (GREY_HI - GREY_LO)));
   return t * (GREYS.length - 1);
 }
-export const SQUIGGLE_COLORS = [...SPECTRUM.map(s => s.id), ...GREYS, WHITE, BLACK];
+/**
+ * The lightest brick of each spectrum colour's own family, for an Accordion's
+ * ribs: the engine strokes each square's edge brighter than its fill, same hue.
+ * Red, Orange, Lime and Bright Green have no lighter sibling in the palette and
+ * fall back to white.
+ */
+export const LIGHT_OF: Record<number, number> = {
+  5: 4,        // Red            -> Orange (no lighter red exists)
+  4: 3,        // Orange       -> Yellow
+  3: 103,      // Yellow         -> Bright Light Yellow
+  34: 103,     // Lime           -> Bright Light Yellow
+  36: 152,     // Bright Green   -> Light Aqua
+  39: 152,     // Dark Turquoise -> Light Aqua
+  153: 156,    // Dark Azure   -> Medium Azure
+  7: 105,      // Blue         -> Bright Light Blue
+  89: 157,     // Dark Purple  -> Medium Lavender
+  71: 104,     // Magenta      -> Bright Pink
+  47: 104,     // Dark Pink    -> Bright Pink
+};
+
+export const SQUIGGLE_COLORS = [...SPECTRUM.map(s => s.id), ...GREYS, ...Object.values(LIGHT_OF), WHITE, BLACK];
 const N = SPECTRUM.length;
 
 /** position of a hue on the palette wheel: anchor k at k, linear in between (0..N) */
