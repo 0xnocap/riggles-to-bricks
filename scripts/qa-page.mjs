@@ -77,36 +77,29 @@ const html = `<title>Riggles to Bricks QA</title>
   and the colours can be read against each other.</p>
 
   <div class="known">
-    <h3>Fixed</h3>
+    <h3>Where it stands</h3>
     <ul>
-      <li><b>Corrugated is a lattice again, in the Mosaic.</b> The engine only strokes a square outline
-      every S/3.6 and never fills it, so the holes are the body. It was being swept solid. 355 riggles are
-      Corrugated.</li>
+      <li><b>Corrugated builds as a lattice.</b> The engine strokes a square outline every S/3.6 and never
+      fills it, so the holes are the body. It was being swept solid.</li>
+      <li><b>Deep stopped overshooting.</b> It is painted at lightness 33 to 36 at full saturation, a strong
+      mid colour rather than a shaded one, so reaching for each family's darkest sibling was wrong. Measured
+      in Lab against the art: Red beats Dark Red by 20, Bright Green beats Green by 21, Blue beats Dark Blue
+      by 25, and Bright Light Orange replaces the Olive Green that read khaki against the art's gold.</li>
+      <li><b>Pixelated, Corrugated and Outline open on the Mosaic</b>, and the Relief is no longer offered
+      for them. All three are drawn from one stud features and a Relief is laid in pieces of at least two
+      studs that overlap to hold together. It cannot build them: asked to, it filled them solid; made to try
+      properly, 11 models came out with pieces held by nothing. 426 riggles, 19 per cent of the collection.</li>
+      <li><b>Colour boundaries turn square corners</b> in both builds. The owner of a cell is the later
+      sample, as the engine paints it, not the nearest one.</li>
     </ul>
-    <h3 style="margin-top:1.2em">The Relief cannot build three of the bodies</h3>
+    <h3 style="margin-top:1.2em">What the palette cannot reach</h3>
     <ul>
-      <li>I built it and took it out again. A Relief is a raised body of laminated layers, laid as pieces of
-      at least two studs that overlap to hold together, and on the Floating display it carries itself with no
-      panel under it. Its ribbon is 3 to 11 studs wide, median 4. Corrugated's lattice bars, Outline's
-      hairline and Pixelated's scattered cells are all one stud wide, which it cannot lay or bond. Built
-      anyway, 11 models came out with pieces held by nothing, and they still read as solid, because at the
-      Relief's scale a Corrugated's holes are 8 studs across a 7 stud band and simply miss it.</li>
-      <li>The Mosaic has the room: flat tiles on a base plate, on a grid about a third finer, with no
-      bonding to satisfy. That is why it can hold a one stud contour and the Relief cannot.</li>
-      <li><b>426 riggles, 19 per cent of the collection, are one of these three.</b> They each build correctly
-      as a Mosaic. Whether the Relief should still be offered for them is yours to call.</li>
-    </ul>
-    <h3 style="margin-top:1.2em">Still open</h3>
-    <ul>
-      <li><b>Outline's contour is a stud thick</b> in the Mosaic against a hairline in the art. One stud is
-      the floor; it can only get thinner in proportion if the whole model is built larger.</li>
-      <li><b>Colour does not hold square blocks, and some hues are still off.</b> Not started.</li>
-    </ul>
-    <h3 style="margin-top:1.2em">Checked, and faithful</h3>
-    <ul>
-      <li><b>Outline shape and spacing.</b> Compared stud for stud on each build's own mapping, the Relief
-      fills nothing the art does not cover; #44 differs by one column. The gaps that close are the art's own,
-      0.9 to 1.9 studs wide at this size.</li>
+      <li><b>Neon blue, magenta and purple.</b> The art paints them fluorescent and LEGO makes nothing
+      fluorescent; blue is 41 away in Lab, the furthest in the collection. Of 36 family and tone pairs, 8
+      have a closer brick in the palette and keep the one they have, each because taking it would run the
+      gradient backwards or break the single lightness a Pastel riggle holds.</li>
+      <li><b>Outline's contour is a stud thick</b> against a hairline in the art. One stud is the floor.</li>
+      <li><b>Smoking riggles lose their vapour.</b> The body builds, the smoke does not.</li>
     </ul>
   </div>
 
