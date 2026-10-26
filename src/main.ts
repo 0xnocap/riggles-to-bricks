@@ -32,6 +32,10 @@ const choice: { format: Format; display: Display; relief: Scale; mosaic: Scale }
 const request = (): ModelRequest => choice.format === 'relief'
   ? { format: 'relief', display: choice.display, scale: choice.relief }
   : { format: 'mosaic', scale: choice.mosaic };
+/** the Relief cannot raise these: see where the format is chosen */
+const mosaicOnly = (l: { traits?: { fuzzy?: boolean; slinky?: boolean; legendary?: string } } | null) =>
+  !!l?.traits && (!!l.traits.fuzzy || !!l.traits.slinky || l.traits.legendary === 'outline');
+
 const built = (b: Builds, r: ModelRequest) => (r.format === 'mosaic' ? b.mosaic[r.scale] : b.relief[r.scale]?.[r.display ?? 'frame']) ?? null;
 let loaded: Loaded | null = null, builds: Builds | null = null, model: SqModel | null = null;
 let loadGen = 0, viewGen = 0;
@@ -86,10 +90,15 @@ async function start(job: () => Promise<Loaded>, label: string, key: string, url
   if (kept.size > 8) kept.delete(kept.keys().next().value!);
   shownKey = key;
   loaded = l; builds = buildAll(l); model = null;
-  // A Pixelated riggle is a constellation of separate cells, so there is no
-  // ribbon to raise: the Relief would quietly build it solid, which is the one
-  // thing it is not. Open it on the Mosaic, which carries it.
-  if (l.traits?.fuzzy) choice.format = 'mosaic';
+  // Three bodies the Relief cannot raise, so they open on the Mosaic and the
+  // Relief is not offered for them. Each is drawn from one stud features: a
+  // Pixelated riggle is separate cells with nothing joining them, a Corrugated
+  // one is a lattice of square outlines, and an Outline is a hairline contour
+  // round an empty inside. A Relief is laid in pieces of at least two studs
+  // that overlap to hold together, and on the Floating display it carries
+  // itself, so it cannot build any of them: it quietly filled all three in
+  // solid, which is the one thing none of them is.
+  if (mosaicOnly(l)) choice.format = 'mosaic';
   showOriginal(l);
   await showChoice();
 }
@@ -263,7 +272,13 @@ function fitStage(m: SqModel, v: { az: number; el: number; margin: number }) {
 }
 
 function renderPicker() {
-  document.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.format === choice.format)));
+  const only = mosaicOnly(loaded);
+  document.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(b => {
+    b.setAttribute('aria-checked', String(b.dataset.format === choice.format));
+    const off = only && b.dataset.format === 'relief';
+    b.disabled = off;
+    b.title = off ? 'This riggle is drawn in one stud lines, finer than a raised ribbon can be built' : '';
+  });
   const relief = choice.format === 'relief', b = builds;
   const opts: [Scale, string, string][] = relief
     ? (['large', 'small'] as Scale[]).map(s => { const m = b?.relief[s]?.[choice.display]; return [s, s === 'large' ? 'Large' : 'Small', m ? sizeText(m) : '…']; })
@@ -273,7 +288,11 @@ function renderPicker() {
   $('displays').hidden = !relief;
   document.querySelectorAll<HTMLButtonElement>('.disp').forEach(d => d.setAttribute('aria-checked', String(d.dataset.display === choice.display)));
 }
-document.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(b => b.addEventListener('click', () => { choice.format = b.dataset.format as Format; showChoice(); }));
+document.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(b => b.addEventListener('click', () => {
+  if (b.disabled) return;
+  choice.format = b.dataset.format as Format;
+  showChoice();
+}));
 $('scales').addEventListener('click', e => {
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-scale]');
   if (!b) return;

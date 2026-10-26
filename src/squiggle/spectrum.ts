@@ -89,15 +89,15 @@ export const PASTEL_OF: Record<number, number> = {
  * the nearest brick to each of them once they darken.
  */
 export const DEEP_OF: Record<number, number> = {
-  5: 59,       // Red            -> Dark Red
+  5: 5,        // Red            -> Red
   4: 68,       // Orange         -> Dark Orange
-  3: 155,      // Yellow         -> Olive Green
-  34: 36,      // Lime           -> Bright Green
-  36: 6,       // Bright Green   -> Green
-  6: 6,        // Green          -> Green              (already the deep green; Dark Green is darker than the art)
+  3: 110,      // Yellow         -> Bright Light Orange
+  34: 34,      // Lime           -> Lime
+  36: 36,      // Bright Green   -> Bright Green
+  6: 6,        // Green          -> Green
   39: 39,      // Dark Turquoise -> Dark Turquoise
   153: 153,    // Dark Azure     -> Dark Azure
-  7: 63,       // Blue           -> Dark Blue
+  7: 7,        // Blue           -> Blue
   89: 89,      // Dark Purple    -> Dark Purple
   71: 71,      // Magenta        -> Magenta
   47: 71,      // Dark Pink      -> Magenta
@@ -119,7 +119,7 @@ export const RIB_OF: Record<number, number> = {
   // the pastel bricks
   220: 90, 28: 90, 103: 1, 158: 1, 152: 1, 156: 152, 105: 1, 42: 105, 154: 1, 157: 154, 104: 1, 90: 1, 2: 90,
   // the deep bricks
-  59: 5, 68: 4, 155: 2, 6: 36, 80: 6, 63: 7,
+  59: 5, 68: 4, 110: 3, 155: 2, 6: 36, 80: 6, 63: 7,
   // the greys
   85: 86, 86: 1, 1: 1,
 };
