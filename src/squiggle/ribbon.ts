@@ -10,7 +10,7 @@ import { partId, SIZES, TILE_SIZES, type Piece } from '../core/parts';
 import { key, kx, kz } from '../core/tile';
 import { arcLength, type Curve, type SquiggleType } from './curve';
 import type { Scale } from './model';
-import { BLACK, LIGHT_OF, SPECTRUM, WHITE, curveColors, paletteCoord } from './spectrum';
+import { BLACK, RIB_OF, SPECTRUM, WHITE, curveColors, paletteCoord } from './spectrum';
 
 export interface Ribbon {
   /** role 'squiggle'; y = 0 at the ribbon bottom; x, z in Frame panel studs (0 ≤ x < panel.w, 0 ≤ z < panel.h) */
@@ -161,7 +161,7 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   // every colour of the spectrum, so this answers per cell rather than once.
   const ribOf = curve.ribGray !== null
     ? () => ((curve.ribGray ?? 0) < 128 ? BLACK : WHITE)
-    : (col: number) => LIGHT_OF[col] ?? WHITE;
+    : (col: number) => RIB_OF[col] ?? WHITE;
 
   // Which cells an Accordion's ribs land on, worked out the way the engine
   // lays them: a square the width of the stroke, outlined a shade lighter,

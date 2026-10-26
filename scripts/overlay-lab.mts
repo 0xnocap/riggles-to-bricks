@@ -75,15 +75,22 @@ let bx = Infinity, bz = Infinity;
 for (const p of model.pieces) { bx = Math.min(bx, p.x); bz = Math.min(bz, p.z); }
 let tx = 0, tz = 0;
 for (const p of model.pieces) { tx = Math.max(tx, p.x + p.w - bx); tz = Math.max(tz, p.z + p.d - bz); }
-const shiftX = Math.round((W - tx) / 2) - bx, shiftZ = Math.round((H - tz) / 2) - bz;
+// the model is built on its own panel, which is not the engine's grid, so it
+// is scaled to the same extent the art was fitted to. Drawing both at one stud
+// per cell made the model look far smaller than the art and nothing lined up.
+const artW = (box.x1 - box.x0 + stroke) * k, artH = (box.y1 - box.y0 + stroke) * k;
+const bk = Math.min(artW / tx, artH / tz);
+const bcx = W / 2 - (tx * bk) / 2, bcz = H / 2 - (tz * bk) / 2;
 for (const p of [...model.pieces].sort((a, b) => a.y - b.y)) {
   if (p.role !== 'squiggle') continue;          // just the riggle, not its frame
   const col = hex(renderHex(p.c));
-  const sx = (p.x + shiftX) * CELL, sy = oy + (H - (p.z + shiftZ) - p.d) * CELL;
-  rect(sx, sy, p.w * CELL, p.d * CELL, col);
+  const sx = (bcx + (p.x - bx) * bk) * CELL;
+  const sy = oy + (H - (bcz + (p.z - bz) * bk) - p.d * bk) * CELL;
+  const PW = Math.max(1, Math.round(p.w * bk * CELL)), PH = Math.max(1, Math.round(p.d * bk * CELL));
+  rect(Math.round(sx), Math.round(sy), PW, PH, col);
   const e = col.map((v) => Math.max(0, v - 40));
-  for (let i = 0; i < p.w * CELL; i++) { put(sx + i, sy, e); put(sx + i, sy + p.d * CELL - 1, e); }
-  for (let j = 0; j < p.d * CELL; j++) { put(sx, sy + j, e); put(sx + p.w * CELL - 1, sy + j, e); }
+  for (let i = 0; i < PW; i++) { put(Math.round(sx) + i, Math.round(sy), e); put(Math.round(sx) + i, Math.round(sy) + PH - 1, e); }
+  for (let j = 0; j < PH; j++) { put(Math.round(sx), Math.round(sy) + j, e); put(Math.round(sx) + PW - 1, Math.round(sy) + j, e); }
 }
 writeFileSync(new URL(`../out/overlay-${id}-${fmt}.png`, import.meta.url), PNG.sync.write(png));
 console.log(`out/overlay-${id}-${fmt}.png  art on top, bricks below, same stud grid (${W}x${H}), ${CELL}px a stud`);

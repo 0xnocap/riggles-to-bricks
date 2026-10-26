@@ -41,38 +41,75 @@ export function greyCoord(light: number): number {
   return t * (GREYS.length - 1);
 }
 /**
- * The lightest brick of each spectrum colour's own family, for an Accordion's
- * ribs: the engine strokes each square's edge brighter than its fill, same hue.
- * Red, Orange, Lime and Bright Green have no lighter sibling in the palette and
- * fall back to white.
+ * The brick a Pastel riggle wears in each spectrum family.
+ *
+ * Chosen one family at a time against the colour the collection actually
+ * paints there, pale first, and judged against the art rather than by a
+ * distance formula. Two findings shaped it. Hue true bricks are wrong when
+ * they are full strength: Bright Light Yellow and Lime put two vivid blocks
+ * in the middle of a soft piece. And the nearest brick by distance is wrong
+ * when it brings in a colour the art never shows: the warm end of a pastel
+ * riggle is salmon pink, so Nougat measured closest to it and read as orange
+ * against a piece that has no orange in it.
+ *
+ * The palette holds about eight genuinely pale bricks for eleven families, so
+ * three families share one with a neighbour. Being the right tone matters
+ * more than holding eleven separate steps.
  */
-export const LIGHT_OF: Record<number, number> = {
-  5: 4,        // Red            -> Orange (no lighter red exists)
-  4: 3,        // Orange       -> Yellow
-  3: 103,      // Yellow         -> Bright Light Yellow
-  34: 103,     // Lime           -> Bright Light Yellow
+export const PASTEL_OF: Record<number, number> = {
+  5: 104,      // Red            -> Bright Pink        (the salmon pink the art paints)
+  4: 90,       // Orange         -> Light Nougat
+  3: 2,        // Yellow         -> Tan
+  34: 48,      // Lime           -> Sand Green
   36: 152,     // Bright Green   -> Light Aqua
-  39: 152,     // Dark Turquoise -> Light Aqua
-  153: 156,    // Dark Azure   -> Medium Azure
-  7: 105,      // Blue         -> Bright Light Blue
-  89: 157,     // Dark Purple  -> Medium Lavender
-  71: 104,     // Magenta      -> Bright Pink
-  47: 104,     // Dark Pink    -> Bright Pink
+  39: 152,     // Dark Turquoise -> Light Aqua         (shared: no second pale aqua)
+  153: 105,    // Dark Azure     -> Bright Light Blue
+  7: 105,      // Blue           -> Bright Light Blue  (shared: no second pale blue)
+  89: 154,     // Dark Purple    -> Lavender
+  71: 157,     // Magenta        -> Medium Lavender
+  47: 104,     // Dark Pink      -> Bright Pink        (shared with Red, either side of the wheel)
 };
 
 /**
- * The deepest brick of each spectrum colour's own family, for a Deep riggle.
- * Where the palette has no darker sibling the colour stands as it is.
+ * The brick a Deep riggle wears in each spectrum family. Where the palette has
+ * no darker sibling of that hue the colour stands as it is, which is why Dark
+ * Turquoise, Dark Azure and Dark Purple repeat: each is already the deepest
+ * brick of its hue. Magenta serves both the magenta and the pink family, being
+ * the nearest brick to each of them once they darken.
  */
-export const DARK_OF: Record<number, number> = {
+export const DEEP_OF: Record<number, number> = {
   5: 59,       // Red            -> Dark Red
   4: 68,       // Orange         -> Dark Orange
-  3: 69,       // Yellow         -> Dark Tan
-  34: 155,     // Lime           -> Olive Green
-  36: 80,      // Bright Green   -> Dark Green
-  153: 63,     // Dark Azure     -> Dark Blue
+  3: 155,      // Yellow         -> Olive Green
+  34: 36,      // Lime           -> Bright Green
+  36: 6,       // Bright Green   -> Green
+  39: 39,      // Dark Turquoise -> Dark Turquoise
+  153: 153,    // Dark Azure     -> Dark Azure
   7: 63,       // Blue           -> Dark Blue
+  89: 89,      // Dark Purple    -> Dark Purple
+  71: 71,      // Magenta        -> Magenta
   47: 71,      // Dark Pink      -> Magenta
+};
+
+/**
+ * The brick an Accordion's ribs are built in, for every brick a body can be.
+ *
+ * This is a different question from Intensity and needs its own table: the
+ * engine outlines each stamped square a shade lighter than its fill, so a rib
+ * answers to the colour of the body it sits on, whatever tone that body is.
+ * Reading it off the family instead put a pastel Lime body and its ribs on the
+ * same brick, which draws no rib at all. White is the fallback, being lighter
+ * than every body brick.
+ */
+export const RIB_OF: Record<number, number> = {
+  // the spectrum
+  5: 28, 4: 90, 3: 103, 34: 103, 36: 48, 39: 152, 153: 105, 7: 105, 89: 157, 71: 157, 47: 104,
+  // the pastel bricks
+  28: 90, 2: 90, 48: 152, 152: 1, 156: 105, 105: 1, 154: 1, 157: 154, 104: 1, 90: 1,
+  // the deep bricks
+  59: 5, 68: 4, 155: 2, 6: 36, 63: 7,
+  // the greys
+  85: 86, 86: 1, 1: 1,
 };
 
 /**
@@ -82,12 +119,12 @@ export const DARK_OF: Record<number, number> = {
  * wearing the wrong tone.
  */
 export function toned(col: number, tone: 'pastel' | 'deep' | null | undefined): number {
-  if (tone === 'pastel') return LIGHT_OF[col] ?? col;
-  if (tone === 'deep') return DARK_OF[col] ?? col;
+  if (tone === 'pastel') return PASTEL_OF[col] ?? col;
+  if (tone === 'deep') return DEEP_OF[col] ?? col;
   return col;
 }
 
-export const SQUIGGLE_COLORS = [...SPECTRUM.map(s => s.id), ...GREYS, ...Object.values(LIGHT_OF), ...Object.values(DARK_OF), WHITE, BLACK];
+export const SQUIGGLE_COLORS = [...SPECTRUM.map(s => s.id), ...GREYS, ...Object.values(PASTEL_OF), ...Object.values(DEEP_OF), ...Object.values(RIB_OF), WHITE, BLACK];
 const N = SPECTRUM.length;
 
 /** position of a hue on the palette wheel: anchor k at k, linear in between (0..N) */
@@ -109,7 +146,8 @@ export function paletteCoord(hue: number): number {
  * and deeper sibling, and the greys. Black is left out, being the usual field.
  */
 export const RIGGLE_BRICKS = [...new Set([
-  ...SPECTRUM.map(p => p.id), ...Object.values(LIGHT_OF), ...Object.values(DARK_OF), ...GREYS,
+  ...SPECTRUM.map(p => p.id), ...Object.values(PASTEL_OF), ...Object.values(DEEP_OF),
+  ...Object.values(RIB_OF), ...GREYS,
 ])];
 
 const RGB = new Map<number, [number, number, number]>();
@@ -126,35 +164,64 @@ export function hslRgb(h: number, s: number, l: number): [number, number, number
   return [f(0), f(8), f(4)];
 }
 
+/** rgb to hue 0..360, saturation and lightness 0..1 */
+function hsl([r, g, b]: [number, number, number]): [number, number, number] {
+  const R = r / 255, G = g / 255, B = b / 255;
+  const mx = Math.max(R, G, B), mn = Math.min(R, G, B), d = mx - mn, l = (mx + mn) / 2;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = mx === R ? ((G - B) / d) % 6 : mx === G ? (B - R) / d + 2 : (R - G) / d + 4;
+  return [((h * 60) % 360 + 360) % 360, s, l];
+}
+
+const HSL = new Map<number, [number, number, number]>();
+for (const id of RIGGLE_BRICKS) HSL.set(id, hsl(RGB.get(id)!));
+
+/** A riggle's Intensity, as the curve carries it. */
+export type Tone = 'pastel' | 'deep' | null | undefined;
+
 /**
- * The brick closest to a colour the engine actually painted.
- *
- * Matching by hue alone put a riggle's hot magenta on a dusty Magenta brick
- * and built every pastel piece at full strength, because hue says nothing
- * about how light or how washed a colour is. Comparing the whole colour picks
- * the brick that looks like it, and it makes Intensity fall out on its own:
- * a pale riggle lands on pale bricks because they are the nearest ones.
+ * The spectrum colour a hue belongs to: the nearest of the eleven anchors
+ * around the wheel.
  */
-export function nearestBrick(rgb: [number, number, number]): number {
-  let best = RIGGLE_BRICKS[0], bd = Infinity;
-  for (const id of RIGGLE_BRICKS) {
-    const c = RGB.get(id)!;
-    // weighted to taste rather than straight rgb: green carries most of what
-    // the eye reads as brightness, blue the least
-    const d = 3 * (c[0] - rgb[0]) ** 2 + 4 * (c[1] - rgb[1]) ** 2 + 2 * (c[2] - rgb[2]) ** 2;
-    if (d < bd) { bd = d; best = id; }
+export function spectrumOf(hue: number): number {
+  const h = ((hue % 360) + 360) % 360;
+  let best = SPECTRUM[0].id, bd = Infinity;
+  for (const p of SPECTRUM) {
+    let d = Math.abs(p.hue - h); if (d > 180) d = 360 - d;
+    if (d < bd) { bd = d; best = p.id; }
   }
   return best;
 }
 
+/**
+ * The brick a painted colour is built in: its hue picks the family, the
+ * riggle's own Intensity picks the member of it.
+ *
+ * This is the engine's own structure rather than a guess at it. A riggle's
+ * hue sweeps along its length while its Intensity is one roll for the whole
+ * piece (engine.js:66), which sets saturation and a lightness multiplier and
+ * nothing else. So lightness does not vary along a riggle: measured over
+ * eighty-one of them, not one moves by more than twelve points. Matching each
+ * point to its nearest brick by colour distance therefore spent its whole
+ * budget on a difference the art does not have, and sent pale riggles to Red
+ * and Dark Red because hue agreed and lightness was outvoted.
+ *
+ * Reading the tone straight off the piece puts a pastel riggle on pale bricks
+ * and a deep one on deep bricks by construction, and it is checkable: eleven
+ * families, three members each, in PASTEL_OF and DEEP_OF above.
+ */
+export function brickFor(hue: number, tone: Tone): number {
+  return toned(spectrumOf(hue), tone);
+}
+
 export function curveColors(c: Curve, minRun: number): number[] {
   const pts = c.points, s = arcLength(pts);
-  // A riggle knows the whole colour the engine painted, so each point takes the
-  // brick nearest to it and holds it for at least minRun, which keeps a gradient
-  // from flickering between two neighbours. A Squiggle carries only a hue and
-  // walks the spectrum wheel below.
+  // A riggle takes the brick its hue and its Intensity name, and holds it for at
+  // least minRun, which keeps a gradient from flickering between two neighbours.
+  // A Squiggle carries only a hue and walks the spectrum wheel below.
   if (c.sat != null && c.light?.length === pts.length) {
-    const want = pts.map((p, i) => nearestBrick(hslRgb(p.hue, c.sat!, c.light![i])));
+    const want = pts.map(p => brickFor(p.hue, c.tone));
     const out: number[] = [];
     let cur = want[0], since = 0;
     for (let i = 0; i < pts.length; i++) {
