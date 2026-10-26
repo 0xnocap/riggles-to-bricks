@@ -246,7 +246,7 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
 
   // the passes over each cell (touches > 2 widths apart along the line): the sample nearest to the cell gives
   // the slab its colour, the latest one its level
-  const touch = new Map<number, { last: number; j: number[]; d: number[]; l: number[] }>();
+  const touch = new Map<number, { last: number; j: number[]; n: number[]; d: number[]; l: number[] }>();
   // Which sample a cell takes its colour from.
   //
   // For a curve it is the nearest one. For a square wave that is wrong, and it
@@ -260,10 +260,20 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   // straight edge. Samples run in that same order here, so the later one wins.
   for (let j = 0; j < SX.length; j++) disc(SX[j], SZ[j], r, (c, d) => {
     const e = touch.get(c), s = SS[j];
-    if (!e) { touch.set(c, { last: s, j: [j], d: [d], l: [lev[j]] }); return; }
+    if (!e) { touch.set(c, { last: s, j: [j], n: [j], d: [d], l: [lev[j]] }); return; }
     const t = e.j.length - 1;
-    if (s - e.last > far) { e.j.push(j); e.d.push(d); e.l.push(lev[j]); }
-    else { if (sq || d < e.d[t]) { e.j[t] = j; e.d[t] = d; } e.l[t] = lev[j]; }
+    if (s - e.last > far) { e.j.push(j); e.n.push(j); e.d.push(d); e.l.push(lev[j]); }
+    // The later sample takes the COLOUR. The nearest one is kept separately,
+    // because it is the cell's geometry: how far it sits from the line and
+    // which way the line runs there. The Pipe's black ring is decided from
+    // that, and reading it off the colour's sample instead turned a whole
+    // narrow pipe black, its interior counted as outer ring.
+    else {
+      const nearer = d < e.d[t];
+      if (sq || nearer) e.j[t] = j;
+      if (nearer) { e.n[t] = j; e.d[t] = d; }
+      e.l[t] = lev[j];
+    }
     e.last = s;
   });
   // Ribbed: bands one stud of L∞ arc long, ribs and plain bands in turn, each in the colour at its middle.
@@ -299,10 +309,16 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   const exact = (c: number, v: Lv) => !v.rib && lineAt.get(c)?.at(-1) === v.col;
   const isRib = (b: number) => ribbedBands && (b < b0 || b > b1 ? b % 2 === 0 : ribs.has(b));
   const endS = cap ? line[cap.at].s : 0;
-  const slabOf = (j: number, d: number, c: number): Lv => {
-    const tx = TX[j], tz = TZ[j];
-    // Pipe: black outer ring, one cell thick in the 8-neighbour sense so it stays joined on diagonals
-    if (curve.type === 'Pipe' && d > r - (Math.abs(tx) + Math.abs(tz))) return { col: BLACK, rib: false, j, d, want: BLACK };
+  const slabOf = (j: number, jn: number, d: number, c: number): Lv => {
+    const tx = TX[jn], tz = TZ[jn];
+    // Pipe: black outer ring, one cell thick in the 8-neighbour sense so it stays
+    // joined on diagonals. A riggle gets none, as its Mosaic does not: the
+    // rings sit on the black field the riggle is drawn on and vanish into it,
+    // so what the art shows is the colour core. A ring is also a whole stud
+    // here against a tenth of the stroke in the art, which on a three stud
+    // ribbon left one stud of colour between two of black and turned a pink
+    // riggle into a black one.
+    if (!sq && curve.type === 'Pipe' && d > r - (Math.abs(tx) + Math.abs(tz))) return { col: BLACK, rib: false, j, d, want: BLACK };
     if (cap && endS - SS[j] <= far && Math.hypot(kx(c) + 0.5 - line[cap.at].x, kz(c) + 0.5 - line[cap.at].z) <= capR)
       return { col: cap.col, rib: curve.type === 'Ribbed', j, d, want: cap.col };
     if (curve.type !== 'Ribbed') return { col: colors[SI[j]], rib: false, j, d, want: colors[SI[j]] };
@@ -321,7 +337,7 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   for (const [c, e] of touch) {
     const a: Lv[] = [];
     e.j.forEach((j, t) => {
-      const v = slabOf(j, e.d[t], c), L = e.l[t];
+      const v = slabOf(j, e.n[t], e.d[t], c), L = e.l[t];
       a.length = Math.min(a.length, L);
       while (a.length < L) a.push({ ...v, rib: false, want: v.col });
       a.push(v);
