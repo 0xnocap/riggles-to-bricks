@@ -37,10 +37,15 @@ const put = (x: number, y: number, col: number[]) => { if (x < 0 || y < 0 || x >
 const rect = (x: number, y: number, w: number, h: number, col: number[]) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(x + i, y + j, col); };
 rect(0, 0, png.width, png.height, [20, 20, 22]);
 
-// THE ART, mapped onto the same stud grid the mosaic uses
+// THE ART, mapped onto the extent the MODEL occupies, so the two sit on one
+// grid and a colour section can be compared stud for stud. Fitting the art to
+// the engine's grid instead drew it half as large again as the model.
 const { box, stroke } = c;
-const pad = 3;
-const k = Math.min((W - 2 * pad) / (box.x1 - box.x0 + stroke), (H - 2 * pad) / (box.y1 - box.y0 + stroke));
+let bx = Infinity, bz = Infinity, tx = 0, tz = 0;
+for (const p of model.pieces) { if (p.role === 'squiggle') { bx = Math.min(bx, p.x); bz = Math.min(bz, p.z); } }
+for (const p of model.pieces) { if (p.role === 'squiggle') { tx = Math.max(tx, p.x + p.w - bx); tz = Math.max(tz, p.z + p.d - bz); } }
+const ox = Math.round((W - tx) / 2), oz = Math.round((H - tz) / 2);
+const k = Math.min(tx / (box.x1 - box.x0 + stroke), tz / (box.y1 - box.y0 + stroke));
 const pcx = (box.x0 + box.x1) / 2, pcy = (box.y0 + box.y1) / 2;
 const toStud = (x: number, y: number) => [(x - pcx) * k + W / 2, (pcy - y) * k + H / 2];
 for (const o of recordRiggle(c.traits, c.canvas.w, c.canvas.h)) {
@@ -70,27 +75,14 @@ for (let z = 0; z <= H; z++) for (let x = 0; x < W * CELL; x++) put(x, z * CELL,
 
 // THE BRICKS
 const oy = H * CELL + 10;
-// the relief is built on its own panel, so place it by its own extent
-let bx = Infinity, bz = Infinity;
-for (const p of model.pieces) { bx = Math.min(bx, p.x); bz = Math.min(bz, p.z); }
-let tx = 0, tz = 0;
-for (const p of model.pieces) { tx = Math.max(tx, p.x + p.w - bx); tz = Math.max(tz, p.z + p.d - bz); }
-// the model is built on its own panel, which is not the engine's grid, so it
-// is scaled to the same extent the art was fitted to. Drawing both at one stud
-// per cell made the model look far smaller than the art and nothing lined up.
-const artW = (box.x1 - box.x0 + stroke) * k, artH = (box.y1 - box.y0 + stroke) * k;
-const bk = Math.min(artW / tx, artH / tz);
-const bcx = W / 2 - (tx * bk) / 2, bcz = H / 2 - (tz * bk) / 2;
 for (const p of [...model.pieces].sort((a, b) => a.y - b.y)) {
   if (p.role !== 'squiggle') continue;          // just the riggle, not its frame
   const col = hex(renderHex(p.c));
-  const sx = (bcx + (p.x - bx) * bk) * CELL;
-  const sy = oy + (H - (bcz + (p.z - bz) * bk) - p.d * bk) * CELL;
-  const PW = Math.max(1, Math.round(p.w * bk * CELL)), PH = Math.max(1, Math.round(p.d * bk * CELL));
-  rect(Math.round(sx), Math.round(sy), PW, PH, col);
+  const sx = (ox + p.x - bx) * CELL, sy = oy + (H - (oz + p.z - bz) - p.d) * CELL;
+  rect(sx, sy, p.w * CELL, p.d * CELL, col);
   const e = col.map((v) => Math.max(0, v - 40));
-  for (let i = 0; i < PW; i++) { put(Math.round(sx) + i, Math.round(sy), e); put(Math.round(sx) + i, Math.round(sy) + PH - 1, e); }
-  for (let j = 0; j < PH; j++) { put(Math.round(sx), Math.round(sy) + j, e); put(Math.round(sx) + PW - 1, Math.round(sy) + j, e); }
+  for (let i = 0; i < p.w * CELL; i++) { put(sx + i, sy, e); put(sx + i, sy + p.d * CELL - 1, e); }
+  for (let j = 0; j < p.d * CELL; j++) { put(sx, sy + j, e); put(sx + p.w * CELL - 1, sy + j, e); }
 }
 writeFileSync(new URL(`../out/overlay-${id}-${fmt}.png`, import.meta.url), PNG.sync.write(png));
 console.log(`out/overlay-${id}-${fmt}.png  art on top, bricks below, same stud grid (${W}x${H}), ${CELL}px a stud`);

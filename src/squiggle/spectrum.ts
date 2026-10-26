@@ -235,19 +235,70 @@ export function brickFor(hue: number, tone: Tone): number {
   return toned(spectrumOf(hue), tone);
 }
 
+/**
+ * The shortest stretch one colour may cover, in studs: a section under this is
+ * merged into its neighbour rather than built.
+ *
+ * A riggle gets one stud, because one stud is the smallest brick and a shorter
+ * section cannot be built at all. It had two, which made a section longer than
+ * the art's own: where a hue cycles quickly the art changes family every 2.6
+ * studs, and holding for two stretched that to 4.4, so each colour covered
+ * more of the riggle than it covers in the art. Riggles that sweep slowly were
+ * never affected either way, their sections being twenty studs long.
+ *
+ * A Squiggle keeps two. Its stroke is a line of circles rather than a band of
+ * square stamps, and at one stud the shorter runs leave it tiled in slivers
+ * that do not bond: its own models came apart, hundreds of pieces held by
+ * nothing.
+ */
+export const minSection = (c: Curve) => (c.sat != null ? 1 : 2);
+
 export function curveColors(c: Curve, minRun: number): number[] {
   const pts = c.points, s = arcLength(pts);
-  // A riggle takes the brick its hue and its Intensity name, and holds it for at
-  // least minRun, which keeps a gradient from flickering between two neighbours.
-  // A Squiggle carries only a hue and walks the spectrum wheel below.
+  // A riggle takes the brick its hue and its Intensity name. A Squiggle carries
+  // only a hue and walks the spectrum wheel below.
+  //
+  // Each colour then has to hold for minRun, and how that is done decides
+  // whether a section covers the stretch of the riggle the art gives it.
+  // Holding the colour in hand until minRun has passed, then taking whatever
+  // the hue happens to be at that moment, chops the piece into slivers: where
+  // a sweeping hue sits on the line between two families the brick alternates
+  // between them, and the hold turns that alternation into a stripe of each,
+  // every one exactly minRun long. The art has no boundary there at all, only
+  // a ramp.
+  //
+  // So the runs are taken as the hue gives them and the short ones are merged
+  // away, shortest first, each into whichever neighbour is longer. A run the
+  // art really does hold keeps its own length, and an alternation collapses
+  // into the colour around it instead of becoming a stripe.
   if (c.sat != null && c.light?.length === pts.length) {
     const want = pts.map(p => brickFor(p.hue, c.tone));
-    const out: number[] = [];
-    let cur = want[0], since = 0;
+    const runs: { c: number; i0: number; i1: number }[] = [];
     for (let i = 0; i < pts.length; i++) {
-      if (want[i] !== cur && s[i] - since >= minRun) { cur = want[i]; since = s[i]; }
-      out.push(cur);
+      const last = runs[runs.length - 1];
+      if (!last || last.c !== want[i]) runs.push({ c: want[i], i0: i, i1: i + 1 });
+      else last.i1 = i + 1;
     }
+    const len = (r: { i0: number; i1: number }) => s[r.i1 - 1] - s[r.i0];
+    const join = () => {
+      for (let i = runs.length - 1; i > 0; i--) {
+        if (runs[i].c !== runs[i - 1].c) continue;
+        runs[i - 1].i1 = runs[i].i1; runs.splice(i, 1);
+      }
+    };
+    while (runs.length > 1) {
+      let m = 0, ml = Infinity;
+      for (let i = 0; i < runs.length; i++) { const L = len(runs[i]); if (L < ml) { ml = L; m = i; } }
+      if (ml >= minRun) break;
+      const left = m > 0 ? runs[m - 1] : null, right = m < runs.length - 1 ? runs[m + 1] : null;
+      const into = !left ? right! : !right ? left : len(left) >= len(right) ? left : right;
+      into.i0 = Math.min(into.i0, runs[m].i0);
+      into.i1 = Math.max(into.i1, runs[m].i1);
+      runs.splice(m, 1);
+      join();
+    }
+    const out = new Array<number>(pts.length);
+    for (const r of runs) for (let i = r.i0; i < r.i1; i++) out[i] = r.c;
     return out;
   }
   // A Greyscale riggle walks the grey ramp by lightness. That ramp is a line,
