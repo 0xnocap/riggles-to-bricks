@@ -103,7 +103,7 @@ export function buildRiggleModel(curve: Curve, meta: { id: number; hash: string 
     const rc = curve as Partial<RiggleCurve>;
     const t = rc.traits;
     const pixels = t ? rigglePixels(t, curve.canvas.w, curve.canvas.h) : [];
-    return buildMosaic(curve, opts.scale, meta, RIGGLE_GRID[opts.scale], { square: true, ribs: RIGGLE_RIBS, pixels, field: rc?.panel, hollow: rc?.traits?.legendary === 'outline' });
+    return buildMosaic(curve, opts.scale, meta, RIGGLE_GRID[opts.scale], { square: true, ribs: RIGGLE_RIBS, pixels, field: rc?.panel, hollow: t?.legendary === 'outline', lattice: !!t?.slinky });
   }
   const panel = RIGGLE_PANEL[opts.scale];
   return buildRelief(curve, opts.display ?? 'frame', opts.scale, meta, {
