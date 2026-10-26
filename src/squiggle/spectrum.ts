@@ -246,6 +246,25 @@ export function brickFor(hue: number, tone: Tone): number {
 }
 
 /**
+ * Which member of a family a painted lightness asks for.
+ *
+ * The lightness the engine paints is the honest signal, rather than the
+ * Intensity the token carries, because an Inverted riggle swaps the two: it
+ * is drawn dark on a light ground, so its Pastel is painted at lightness 30
+ * and its Deep at 64, the other way round from every other riggle. Read off
+ * the trait instead, the eight Inverted riggles in the collection were built
+ * in pale bricks where the art is dark and dark ones where it is pale.
+ *
+ * The three are well apart and need no judgement: measured over the whole
+ * collection, Deep runs 33 to 36, Neon 46 to 54 and Pastel 64 to 70.
+ */
+export function toneOfLight(light: number): Tone {
+  if (light >= 60) return 'pastel';
+  if (light <= 42) return 'deep';
+  return null;
+}
+
+/**
  * The shortest stretch one colour may cover, in studs: a section under this is
  * merged into its neighbour rather than built.
  *
@@ -283,8 +302,14 @@ export function curveColors(c: Curve, minRun: number): number[] {
   // away, shortest first, each into whichever neighbour is longer. A run the
   // art really does hold keeps its own length, and an alternation collapses
   // into the colour around it instead of becoming a stripe.
-  if (c.sat != null && c.light?.length === pts.length) {
-    const want = pts.map(p => brickFor(p.hue, c.tone));
+  // a Greyscale riggle is not matched by hue: it has none, its engine answering
+  // hsl(0, 0%, L), and hue 0 is Red. It walks the grey ramp below instead. This
+  // test used to read the saturation alone, which is 0 and not null for such a
+  // riggle, so the whole of it was built in the Red family: black and white
+  // riggles came out red and salmon.
+  if (!c.greyscale && c.sat != null && c.light?.length === pts.length) {
+    const tone = toneOfLight(c.light![Math.floor(c.light!.length / 2)]);
+    const want = pts.map(p => brickFor(p.hue, tone));
     const runs: { c: number; i0: number; i1: number }[] = [];
     for (let i = 0; i < pts.length; i++) {
       const last = runs[runs.length - 1];
