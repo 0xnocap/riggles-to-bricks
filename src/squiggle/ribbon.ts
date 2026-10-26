@@ -249,23 +249,21 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   const touch = new Map<number, { last: number; j: number[]; d: number[]; l: number[] }>();
   // Which sample a cell takes its colour from.
   //
-  // The obvious answer is the nearest one, and for a curve it is the right one.
-  // For a square wave it is not: within half a stroke of a corner the next
-  // segment is nearer than the one the cell sits on, so a run's colour boundary
-  // bends into the riser and the gradient stops changing along the wave and
-  // starts changing across it. A riggle's colour runs ALONG its line, so the
-  // owner is the sample the cell is nearest to measured along the line, not
-  // across it. That puts every boundary square to the stroke.
-  const owns = (j: number, c: number, d: number) => {
-    if (!sq) return d;
-    const ax = kx(c) + 0.5 - SX[j], az = kz(c) + 0.5 - SZ[j];
-    return Math.abs(ax * TX[j] + az * TZ[j]);
-  };
-  for (let j = 0; j < SX.length; j++) disc(SX[j], SZ[j], r, (c, d0) => {
-    const e = touch.get(c), s = SS[j], d = owns(j, c, d0);
+  // For a curve it is the nearest one. For a square wave that is wrong, and it
+  // is what made the colour change on a diagonal: inside the corner square the
+  // run's samples and the riser's are equally near along a 45 degree line, so
+  // the boundary followed that line as a staircase instead of turning squarely.
+  //
+  // The engine has no such problem because it never asks what is nearest. It
+  // paints one rectangle per run and riser in order, each over the last, so the
+  // corner simply belongs to whichever came later and the colour turns on a
+  // straight edge. Samples run in that same order here, so the later one wins.
+  for (let j = 0; j < SX.length; j++) disc(SX[j], SZ[j], r, (c, d) => {
+    const e = touch.get(c), s = SS[j];
     if (!e) { touch.set(c, { last: s, j: [j], d: [d], l: [lev[j]] }); return; }
     const t = e.j.length - 1;
-    if (s - e.last > far) { e.j.push(j); e.d.push(d); e.l.push(lev[j]); } else { if (d < e.d[t]) { e.j[t] = j; e.d[t] = d; } e.l[t] = lev[j]; }
+    if (s - e.last > far) { e.j.push(j); e.d.push(d); e.l.push(lev[j]); }
+    else { if (sq || d < e.d[t]) { e.j[t] = j; e.d[t] = d; } e.l[t] = lev[j]; }
     e.last = s;
   });
   // Ribbed: bands one stud of L∞ arc long, ribs and plain bands in turn, each in the colour at its middle.
