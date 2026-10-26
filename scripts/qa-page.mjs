@@ -77,16 +77,36 @@ const html = `<title>Riggles to Bricks QA</title>
   and the colours can be read against each other.</p>
 
   <div class="known">
-    <h3>What I already know is off</h3>
+    <h3>Fixed</h3>
     <ul>
-      <li><b>Pixelated and Outline only work as a Mosaic.</b> The Relief fills them in solid: it is a raised
-      ribbon and cannot hold scattered cells or a hollow contour. The site opens both on the Mosaic, but the
-      Relief is still offered.</li>
-      <li><b>Smoking riggles lose their vapour.</b> The body builds, the smoke does not.</li>
-      <li><b>Deep yellow goes to Olive Green</b>, which reads khaki against the art's gold. It is the only
-      brick LEGO sells in that hue at that darkness.</li>
-      <li><b>Pastel greens are a compromise.</b> There is no pale green in LEGO plates and tiles, so the green
-      families take the pale yellow green and the pale mint either side of them.</li>
+      <li><b>Corrugated is a lattice again, in the Mosaic.</b> The engine only strokes a square outline
+      every S/3.6 and never fills it, so the holes are the body. It was being swept solid. 355 riggles are
+      Corrugated.</li>
+    </ul>
+    <h3 style="margin-top:1.2em">The Relief cannot build three of the bodies</h3>
+    <ul>
+      <li>I built it and took it out again. A Relief is a raised body of laminated layers, laid as pieces of
+      at least two studs that overlap to hold together, and on the Floating display it carries itself with no
+      panel under it. Its ribbon is 3 to 11 studs wide, median 4. Corrugated's lattice bars, Outline's
+      hairline and Pixelated's scattered cells are all one stud wide, which it cannot lay or bond. Built
+      anyway, 11 models came out with pieces held by nothing, and they still read as solid, because at the
+      Relief's scale a Corrugated's holes are 8 studs across a 7 stud band and simply miss it.</li>
+      <li>The Mosaic has the room: flat tiles on a base plate, on a grid about a third finer, with no
+      bonding to satisfy. That is why it can hold a one stud contour and the Relief cannot.</li>
+      <li><b>426 riggles, 19 per cent of the collection, are one of these three.</b> They each build correctly
+      as a Mosaic. Whether the Relief should still be offered for them is yours to call.</li>
+    </ul>
+    <h3 style="margin-top:1.2em">Still open</h3>
+    <ul>
+      <li><b>Outline's contour is a stud thick</b> in the Mosaic against a hairline in the art. One stud is
+      the floor; it can only get thinner in proportion if the whole model is built larger.</li>
+      <li><b>Colour does not hold square blocks, and some hues are still off.</b> Not started.</li>
+    </ul>
+    <h3 style="margin-top:1.2em">Checked, and faithful</h3>
+    <ul>
+      <li><b>Outline shape and spacing.</b> Compared stud for stud on each build's own mapping, the Relief
+      fills nothing the art does not cover; #44 differs by one column. The gaps that close are the art's own,
+      0.9 to 1.9 studs wide at this size.</li>
     </ul>
   </div>
 
