@@ -60,8 +60,9 @@ export const PASTEL_OF: Record<number, number> = {
   5: 104,      // Red            -> Bright Pink        (the salmon pink the art paints)
   4: 90,       // Orange         -> Light Nougat
   3: 2,        // Yellow         -> Tan
-  34: 48,      // Lime           -> Sand Green
+  34: 48,      // Lime           -> Sand Green         (shared with Green: no pale yellow green)
   36: 152,     // Bright Green   -> Light Aqua
+  6: 48,       // Green          -> Sand Green         (hue for hue, the pale green)
   39: 152,     // Dark Turquoise -> Light Aqua         (shared: no second pale aqua)
   153: 105,    // Dark Azure     -> Bright Light Blue
   7: 105,      // Blue           -> Bright Light Blue  (shared: no second pale blue)
@@ -83,6 +84,7 @@ export const DEEP_OF: Record<number, number> = {
   3: 155,      // Yellow         -> Olive Green
   34: 36,      // Lime           -> Bright Green
   36: 6,       // Bright Green   -> Green
+  6: 6,        // Green          -> Green              (already the deep green; Dark Green is darker than the art)
   39: 39,      // Dark Turquoise -> Dark Turquoise
   153: 153,    // Dark Azure     -> Dark Azure
   7: 63,       // Blue           -> Dark Blue
@@ -107,7 +109,7 @@ export const RIB_OF: Record<number, number> = {
   // the pastel bricks
   28: 90, 2: 90, 48: 152, 152: 1, 156: 105, 105: 1, 154: 1, 157: 154, 104: 1, 90: 1,
   // the deep bricks
-  59: 5, 68: 4, 155: 2, 6: 36, 63: 7,
+  59: 5, 68: 4, 155: 2, 6: 36, 80: 6, 63: 7,
   // the greys
   85: 86, 86: 1, 1: 1,
 };
@@ -181,15 +183,33 @@ for (const id of RIGGLE_BRICKS) HSL.set(id, hsl(RGB.get(id)!));
 export type Tone = 'pastel' | 'deep' | null | undefined;
 
 /**
- * The spectrum colour a hue belongs to: the nearest of the eleven anchors
- * around the wheel.
+ * The families a riggle is built from: the eleven of the spectrum, and Green.
+ *
+ * Green is here because the spectrum leaves sixty seven degrees of hue empty
+ * between Bright Green and Dark Turquoise, and a tenth of the colour the
+ * collection paints falls in it. Every spring green was being built in Dark
+ * Turquoise, more than thirty degrees away, which is why a green riggle came
+ * out teal. Green's own hue is 141, and it is anchored at 148, the middle of
+ * the gap.
+ *
+ * The anchors are the spectrum's own numbers rather than the hue each brick
+ * measures, which is a designed wheel and not a description of the bricks.
+ * Measuring instead moved the boundary between Blue and Dark Purple by
+ * fifteen degrees and put a violet tip on a riggle the art ends in blue.
  */
+export const RIGGLE_FAMILIES: { id: number; hue: number }[] = [
+  ...SPECTRUM.slice(0, 5).map(p => ({ id: p.id, hue: p.hue })),   // Red to Bright Green
+  { id: 6, hue: 148 },                                            // Green
+  ...SPECTRUM.slice(5).map(p => ({ id: p.id, hue: p.hue })),      // Dark Turquoise on
+];
+
+/** The family a hue belongs to: the nearest of them around the wheel. */
 export function spectrumOf(hue: number): number {
   const h = ((hue % 360) + 360) % 360;
-  let best = SPECTRUM[0].id, bd = Infinity;
-  for (const p of SPECTRUM) {
-    let d = Math.abs(p.hue - h); if (d > 180) d = 360 - d;
-    if (d < bd) { bd = d; best = p.id; }
+  let best = RIGGLE_FAMILIES[0].id, bd = Infinity;
+  for (const f of RIGGLE_FAMILIES) {
+    let d = Math.abs(f.hue - h); if (d > 180) d = 360 - d;
+    if (d < bd) { bd = d; best = f.id; }
   }
   return best;
 }
