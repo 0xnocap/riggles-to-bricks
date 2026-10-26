@@ -41,34 +41,44 @@ export function greyCoord(light: number): number {
   return t * (GREYS.length - 1);
 }
 /**
- * The brick a Pastel riggle wears in each spectrum family.
+ * The brick a Pastel riggle wears in each family.
  *
- * Chosen one family at a time against the colour the collection actually
- * paints there, pale first, and judged against the art rather than by a
- * distance formula. Two findings shaped it. Hue true bricks are wrong when
- * they are full strength: Bright Light Yellow and Lime put two vivid blocks
- * in the middle of a soft piece. And the nearest brick by distance is wrong
- * when it brings in a colour the art never shows: the warm end of a pastel
- * riggle is salmon pink, so Nougat measured closest to it and read as orange
- * against a piece that has no orange in it.
+ * A pastel riggle is painted at 62 saturation and 70 lightness: bright, not
+ * dusty. Every family now gets a brick of its own hue at about that strength,
+ * which only became possible once the palette held the bricks' real values.
+ * Chosen before it did, against numbers that said the bright bricks were dull
+ * ones, this table reached for the greyest bricks in the set, and a pastel
+ * riggle came out the colour of a nursery blanket: Sand Green at 17
+ * saturation standing in for a mint the art paints at 62.
  *
- * The palette holds about eight genuinely pale bricks for eleven families, so
- * three families share one with a neighbour. Being the right tone matters
- * more than holding eleven separate steps.
+ * The warm end shares one brick. LEGO sells exactly two colours in that band
+ * of hue at a pastel's lightness, Bright Pink and Coral, and Coral is
+ * saturation 100: dropped among these it reads as an orange red, where the
+ * art paints a soft salmon. Red and Dark Pink sit either side of the wheel
+ * from each other, so both take the pink.
+ *
+ * The bricks are also kept near one lightness, because the art keeps them
+ * there: every pastel colour it paints is lightness 70, whatever its hue. A
+ * brick well below that reads as a hole rather than a shade. That is what
+ * rules out the Bright Green brick, which is the right hue and lightness 49:
+ * dropped into a piece built at 80 it looked like a neon block. LEGO makes no
+ * lighter green in plates and tiles, Medium Green being sold in one plate and
+ * no tiles at all, so the green families take the pale yellow green and the
+ * pale mint on either side of them.
  */
 export const PASTEL_OF: Record<number, number> = {
-  5: 104,      // Red            -> Bright Pink        (the salmon pink the art paints)
-  4: 90,       // Orange         -> Light Nougat
-  3: 2,        // Yellow         -> Tan
-  34: 48,      // Lime           -> Sand Green         (shared with Green: no pale yellow green)
-  36: 152,     // Bright Green   -> Light Aqua
-  6: 48,       // Green          -> Sand Green         (hue for hue, the pale green)
-  39: 152,     // Dark Turquoise -> Light Aqua         (shared: no second pale aqua)
+  5: 104,      // Red            -> Bright Pink         (shared: see below)
+  4: 28,       // Orange         -> Nougat
+  3: 103,      // Yellow         -> Bright Light Yellow
+  34: 158,     // Lime           -> Yellowish Green
+  36: 158,     // Bright Green   -> Yellowish Green     (shared: see below)
+  6: 152,      // Green          -> Light Aqua
+  39: 156,     // Dark Turquoise -> Medium Azure
   153: 105,    // Dark Azure     -> Bright Light Blue
-  7: 105,      // Blue           -> Bright Light Blue  (shared: no second pale blue)
+  7: 42,       // Blue           -> Medium Blue
   89: 154,     // Dark Purple    -> Lavender
   71: 157,     // Magenta        -> Medium Lavender
-  47: 104,     // Dark Pink      -> Bright Pink        (shared with Red, either side of the wheel)
+  47: 104,     // Dark Pink      -> Bright Pink
 };
 
 /**
@@ -105,9 +115,9 @@ export const DEEP_OF: Record<number, number> = {
  */
 export const RIB_OF: Record<number, number> = {
   // the spectrum
-  5: 28, 4: 90, 3: 103, 34: 103, 36: 48, 39: 152, 153: 105, 7: 105, 89: 157, 71: 157, 47: 104,
+  5: 28, 4: 90, 3: 103, 34: 103, 36: 152, 39: 152, 153: 105, 7: 105, 89: 157, 71: 157, 47: 104,
   // the pastel bricks
-  28: 90, 2: 90, 48: 152, 152: 1, 156: 105, 105: 1, 154: 1, 157: 154, 104: 1, 90: 1,
+  220: 90, 28: 90, 103: 1, 158: 1, 152: 1, 156: 152, 105: 1, 42: 105, 154: 1, 157: 154, 104: 1, 90: 1, 2: 90,
   // the deep bricks
   59: 5, 68: 4, 155: 2, 6: 36, 80: 6, 63: 7,
   // the greys
@@ -239,19 +249,21 @@ export function brickFor(hue: number, tone: Tone): number {
  * The shortest stretch one colour may cover, in studs: a section under this is
  * merged into its neighbour rather than built.
  *
- * A riggle gets one stud, because one stud is the smallest brick and a shorter
- * section cannot be built at all. It had two, which made a section longer than
- * the art's own: where a hue cycles quickly the art changes family every 2.6
- * studs, and holding for two stretched that to 4.4, so each colour covered
- * more of the riggle than it covers in the art. Riggles that sweep slowly were
- * never affected either way, their sections being twenty studs long.
+ * Two studs, which is what the Relief can actually build. It lays no 1x1
+ * piece, so that every piece sits on at least two studs and the ribbon holds
+ * together as one body, and a cell it cannot tie in that way is dropped. A
+ * one stud section therefore does not come out short, it comes out missing:
+ * at one stud the riggle was severed into pieces with holes between them,
+ * while the checks still passed, every piece being held by the panel beneath
+ * it rather than by the riggle.
  *
- * A Squiggle keeps two. Its stroke is a line of circles rather than a band of
- * square stamps, and at one stud the shorter runs leave it tiled in slivers
- * that do not bond: its own models came apart, hundreds of pieces held by
- * nothing.
+ * The length of a section is governed by the merging in curveColors rather
+ * than by this number. Holding the colour in hand and then taking whatever
+ * the hue had become made sections far longer than the art's; merging the
+ * short runs away instead brings them back to the art's own length at the
+ * same two studs.
  */
-export const minSection = (c: Curve) => (c.sat != null ? 1 : 2);
+export const minSection = () => 2;
 
 export function curveColors(c: Curve, minRun: number): number[] {
   const pts = c.points, s = arcLength(pts);
@@ -286,12 +298,43 @@ export function curveColors(c: Curve, minRun: number): number[] {
         runs[i - 1].i1 = runs[i].i1; runs.splice(i, 1);
       }
     };
-    while (runs.length > 1) {
-      let m = 0, ml = Infinity;
+    // A run too short to build first tries to borrow the length it needs from
+    // a neighbour that can spare it, and only joins one when none can. The
+    // riggle usually has the room: #13 wants 68 sections and two studs each
+    // comes to 136 of its 160, so every colour the art paints can be built.
+    //
+    // Merging on sight loses colours, and merging into the longer neighbour
+    // loses them unevenly: the longest run swallows each sliver beside it,
+    // grows, and so wins the next merge too, which took Yellowish Green from
+    // the 19 per cent of #13 the art gives it to 54 and left five of its
+    // eleven colours out of the model altogether. Where a merge is still
+    // needed the run joins the neighbour whose brick is nearest its own.
+    const near = (a: number, b: number) => {
+      const [ar, ag, ab] = RGB.get(a) ?? [0, 0, 0], [br, bg, bb] = RGB.get(b) ?? [0, 0, 0];
+      return 3 * (ar - br) ** 2 + 4 * (ag - bg) ** 2 + 2 * (ab - bb) ** 2;
+    };
+    const shortest = () => {
+      let m = -1, ml = Infinity;
       for (let i = 0; i < runs.length; i++) { const L = len(runs[i]); if (L < ml) { ml = L; m = i; } }
-      if (ml >= minRun) break;
+      return ml < minRun ? m : -1;
+    };
+    for (let guard = 0; guard < 4 * pts.length; guard++) {
+      const m = shortest();
+      if (m < 0 || runs.length < 2) break;
+      let grew = true;
+      while (len(runs[m]) < minRun && grew) {
+        const left = m > 0 ? runs[m - 1] : null, right = m < runs.length - 1 ? runs[m + 1] : null;
+        const slackL = left && left.i1 - left.i0 > 1 ? len(left) - minRun : -1;
+        const slackR = right && right.i1 - right.i0 > 1 ? len(right) - minRun : -1;
+        if (slackL <= 0 && slackR <= 0) { grew = false; break; }
+        if (slackL >= slackR) { left!.i1--; runs[m].i0--; } else { right!.i0++; runs[m].i1++; }
+      }
+      if (grew) continue;
       const left = m > 0 ? runs[m - 1] : null, right = m < runs.length - 1 ? runs[m + 1] : null;
-      const into = !left ? right! : !right ? left : len(left) >= len(right) ? left : right;
+      const into = !left ? right! : !right ? left
+        : near(runs[m].c, left.c) !== near(runs[m].c, right.c)
+          ? (near(runs[m].c, left.c) < near(runs[m].c, right.c) ? left : right)
+          : (len(left) >= len(right) ? left : right);
       into.i0 = Math.min(into.i0, runs[m].i0);
       into.i1 = Math.max(into.i1, runs[m].i1);
       runs.splice(m, 1);

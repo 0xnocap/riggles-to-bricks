@@ -145,7 +145,7 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
   // from the end point on: its disc is the dot; the colours before it catch up with its colour one step a stud
   if (opts.pixels?.length) return pixelPicture(opts.pixels, W, H, pad, opts.field ?? BLACK, curve.tone);
 
-  const plain = curveColors(curve, minSection(curve) / k);
+  const plain = curveColors(curve, minSection() / k);
   const colors = opts.square ? plain : endCap(curve, plain, 0, 1 / k);
   const last = new Int32Array(W * H).fill(-1);
   points.forEach((_, i) => {

@@ -146,7 +146,7 @@ export function buildRibbon(curve: Curve, scale: Scale, opts: { studs?: boolean;
   // A riggle has no end dot. Its engine draws each segment as a rectangle run on
   // half a stroke past both its vertices, so the flat end falls out of the square
   // footprint on its own and nothing is stamped over it.
-  const plainColors = curveColors(curve, minSection(curve) / k);
+  const plainColors = curveColors(curve, minSection() / k);
   const cap = sq ? null : capOf(curve, 1.5 / k);
   const colors = sq ? plainColors : endCap(curve, plainColors, 1.5 / k, 1 / k);
   const capR = (curve.type === 'Ribbed' ? 1.08 : 1) * 1.5;

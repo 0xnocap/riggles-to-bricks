@@ -325,9 +325,19 @@ describe('plans seen from above', () => {
     const rgb = (h: string) => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
     expect(lum(ghost('#1B1B1B'))).toBeLessThan(90);          // black: dark grey, not light grey
     expect(lum(ghost('#F4F4F4'))).toBeGreaterThan(200);      // white: still light
+    // the hue itself, rather than which channel is largest: Dark Turquoise is
+    // so near pure cyan (green 171, blue 168) that muting it flips the two,
+    // while its hue moves two degrees
+    const hue = ([r, g, b]: number[]) => {
+      const mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+      if (!d) return 0;
+      const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return ((h * 60) % 360 + 360) % 360;
+    };
     for (const s of SPECTRUM) {
-      const a = rgb(renderHex(s.id)), b = rgb(ghost(renderHex(s.id))), top = a.indexOf(Math.max(...a));
-      expect(b.indexOf(Math.max(...b)), s.name).toBe(top);   // the dominant channel stays
+      const a = rgb(renderHex(s.id)), b = rgb(ghost(renderHex(s.id)));
+      const turn = Math.abs(hue(b) - hue(a));
+      expect(Math.min(turn, 360 - turn), s.name).toBeLessThan(8);   // the hue stays
       expect(Math.max(...b) - Math.min(...b), s.name).toBeLessThan(Math.max(...a) - Math.min(...a));
     }
   });
