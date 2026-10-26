@@ -157,6 +157,36 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
         if (inside) last[x + z * W] = i;
       }
   });
+  // A Corrugated riggle is a lattice, not a bar.
+  //
+  // The engine never fills it: it strokes a square outline of 1.5 S every
+  // S/3.6 along the wave (engine.js, the slinky branch of drawSpan), so what
+  // shows is the overlapping edges with the background between them. Swept as
+  // a solid stroke like every other body, it came out a plain blob and lost
+  // the holes the art is made of.
+  if (opts.square && curve.type === 'Slinky') {
+    const arc = arcLength(points).map(v => v * k);
+    const total = arc[arc.length - 1] ?? 0;
+    const strokeStuds = curve.stroke * k;
+    const sq = 1.5 * strokeStuds, pitch = Math.max(0.5, strokeStuds / 3.6);
+    const half = Math.max(0.6, Math.max(1.4 * k, strokeStuds / 7) / 2);
+    const lattice = new Int32Array(W * H).fill(-1);
+    let j = 0;
+    for (let d = 0; d <= total; d += pitch) {
+      while (j + 1 < arc.length && arc[j + 1] < d) j++;
+      const u = arc[j + 1] > arc[j] ? (d - arc[j]) / (arc[j + 1] - arc[j]) : 0;
+      const cx = X[j] + ((X[j + 1] ?? X[j]) - X[j]) * u, cz = Z[j] + ((Z[j + 1] ?? Z[j]) - Z[j]) * u;
+      const outer = sq / 2 + half, inner = sq / 2 - half;
+      for (let x = Math.max(0, Math.ceil(cx - outer - 0.5)); x <= Math.min(W - 1, Math.floor(cx + outer - 0.5)); x++)
+        for (let z = Math.max(0, Math.ceil(cz - outer - 0.5)); z <= Math.min(H - 1, Math.floor(cz + outer - 0.5)); z++) {
+          const dx = Math.abs(x + 0.5 - cx), dz = Math.abs(z + 0.5 - cz);
+          if (dx > outer || dz > outer) continue;
+          if (dx < inner && dz < inner) continue;        // the hole the outline leaves
+          lattice[x + z * W] = j;
+        }
+    }
+    last.set(lattice);
+  }
   const cells = [...last].map(i => (i < 0 ? (opts.field ?? BLACK) : colors[i]));
   // Accordion ribs.
   //
