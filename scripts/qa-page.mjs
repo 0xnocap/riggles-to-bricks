@@ -86,9 +86,12 @@ const html = `<title>Riggles to Bricks QA</title>
       in Lab against the art: Red beats Dark Red by 20, Bright Green beats Green by 21, Blue beats Dark Blue
       by 25, and Bright Light Orange replaces the Olive Green that read khaki against the art's gold.</li>
       <li><b>Pixelated, Corrugated and Outline open on the Mosaic</b>, and the Relief is no longer offered
-      for them. All three are drawn from one stud features and a Relief is laid in pieces of at least two
-      studs that overlap to hold together. It cannot build them: asked to, it filled them solid; made to try
-      properly, 11 models came out with pieces held by nothing. 426 riggles, 19 per cent of the collection.</li>
+      for them. All three are drawn from one stud features, and a Relief is laid in pieces of at least two
+      studs that overlap to hold together. Pixelated's cells never touch, so there is nothing to bond. The
+      Corrugated coil was built and measured: a Relief band runs 3 to 7 studs while the coil's own pitch at
+      that scale is half a stud to 1.3, and a brick stops at one. Only the 76 widest of 401 read as a coil.
+      120 come out as scattered pinholes, and 74 of the 152 narrowest tear into loose pieces. 426 riggles,
+      19 per cent of the collection.</li>
       <li><b>Colour boundaries turn square corners</b> in both builds. The owner of a cell is the later
       sample, as the engine paints it, not the nearest one.</li>
     </ul>
