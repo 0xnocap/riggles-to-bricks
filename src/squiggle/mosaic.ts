@@ -177,10 +177,18 @@ export function mosaicPicture(curve: Curve, scale: Scale, grid?: [number, number
   // in a different column: the bars came out unevenly spaced, some touching and
   // some two studs apart, which reads as a mistake rather than a weave.
   if (opts.square && opts.lattice) {
-    const strokeStuds = curve.stroke * k;
-    const side = Math.max(3, Math.round(1.5 * strokeStuds));
-    const step = Math.max(2, Math.round(strokeStuds / 3.6));
-    const band = Math.max(1, Math.round(strokeStuds / 7));
+    // `curve.stroke` is already the engine's square: a Corrugated's stroke IS
+    // S * 1.5, the outline it draws. So the square is the whole swept band and
+    // the step and the line, which the engine sizes off S, are that band over
+    // 1.5. Sizing all three off the stroke made each one half again too big:
+    // the square came out 2.25 S inside a 1.5 S band, so its own top and bottom
+    // edges fell outside and were thrown away, and a horizontal run kept its
+    // vertical bars but lost the two rails that run along it in the art.
+    const sq = curve.stroke * k;                      // the engine's square, 1.5 S, in studs
+    const S = sq / 1.5;                               // S itself
+    const side = Math.max(3, Math.round(sq));
+    const step = Math.max(2, Math.round(S / 3.6));
+    const band = Math.max(1, Math.round(S / 7));
     const arc = arcLength(points).map(v => v * k);
     const total = arc[arc.length - 1] ?? 0;
     const lattice = new Int32Array(W * H).fill(-1);
