@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 const out = process.argv[2] ?? 'out/qa.html';
 const man = JSON.parse(readFileSync('out/qa/manifest.json', 'utf8'));
 const uri = f => existsSync(`out/qa/${f}`) ? `data:image/png;base64,${readFileSync(`out/qa/${f}`).toString('base64')}` : '';
+const dims = f => { const b = readFileSync(`out/qa/${f}`); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const rows = man.map(r => {
@@ -14,11 +15,13 @@ const rows = man.map(r => {
     <h2>#${r.id}</h2>
     <p class="kind">${esc(r.type)}</p>
     <div class="tags">${tags}</div>
-    <p class="count">${r.reliefPieces} pieces relief · ${r.mosaicPieces} mosaic</p>
+    <p class="count">${r.mosaicOnly ? `${r.mosaicPieces} pieces mosaic` : `${r.reliefPieces} pieces relief · ${r.mosaicPieces} mosaic`}</p>
   </header>
   <div class="three">
     <figure><img loading="lazy" alt="Riggle ${r.id}, the art" src="${uri(`art-${r.id}.png`)}"><figcaption>Art</figcaption></figure>
-    <figure><img loading="lazy" alt="Riggle ${r.id}, built as a relief" src="${uri(`relief-${r.id}.png`)}"><figcaption>Relief</figcaption></figure>
+    <figure>${r.mosaicOnly
+      ? `<div class="na" style="aspect-ratio:${dims(`mosaic-${r.id}.png`).join('/')}"><span>Not available</span></div>`
+      : `<img loading="lazy" alt="Riggle ${r.id}, built as a relief" src="${uri(`relief-${r.id}.png`)}">`}<figcaption>Relief</figcaption></figure>
     <figure><img loading="lazy" alt="Riggle ${r.id}, built as a mosaic" src="${uri(`mosaic-${r.id}.png`)}"><figcaption>Mosaic</figcaption></figure>
   </div>
 </section>`;
@@ -62,6 +65,8 @@ const html = `<title>Riggles to Bricks QA</title>
   .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; min-width: 0; }
   figure { margin: 0; min-width: 0; }
   figure img { display: block; width: 100%; max-width: 100%; border-radius: 6px; background: var(--tile); border: 1px solid var(--line); }
+  .na { display: grid; place-items: center; border-radius: 6px; border: 1px dashed var(--line); background: transparent; }
+  .na span { font-family: var(--mono); font-size: .72rem; color: var(--dim); text-align: center; padding: 0 8px; }
   figcaption { font-family: var(--mono); font-size: .68rem; color: var(--dim); margin-top: 5px; text-transform: uppercase; letter-spacing: .08em; }
   @media (max-width: 760px) {
     .riggle { grid-template-columns: 1fr; gap: 14px; }
@@ -87,7 +92,8 @@ const html = `<title>Riggles to Bricks QA</title>
       by 25, and Bright Light Orange replaces the Olive Green that read khaki against the art's gold.</li>
       <li><b>Pixelated, Corrugated and Outline open on the Mosaic</b>, and the Relief is no longer offered
       for them. All three are drawn from one stud features, and a Relief is laid in pieces of at least two
-      studs that overlap to hold together. Pixelated's cells never touch, so there is nothing to bond. The
+      studs that overlap to hold together. Pixelated lands in about 53 separate islands, the biggest holding under a third of the
+      cells, each cell one stud across. The
       Corrugated coil was built and measured: a Relief band runs 3 to 7 studs while the coil's own pitch at
       that scale is half a stud to 1.3, and a brick stops at one. Only the 76 widest of 401 read as a coil.
       120 come out as scattered pinholes, and 74 of the 152 narrowest tear into loose pieces. 426 riggles,

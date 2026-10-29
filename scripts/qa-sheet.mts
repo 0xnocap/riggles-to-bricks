@@ -33,6 +33,8 @@ for (const id of ids) {
     ['relief', buildRiggle(id, hash, { format: 'relief', display: 'frame', scale: 'large' }).model],
     ['mosaic', buildRiggle(id, hash, { format: 'mosaic', display: 'frame', scale: 'large' }).model],
   ];
+  // the site's own rule, from where the format is chosen in src/main.ts
+  const mosaicOnly = !!parseHash(hash).fuzzy || !!parseHash(hash).slinky || parseHash(hash).legendary === 'outline';
   // one frame for both, so the two builds are at one scale as well as the art
   const es = models.map(([, m]) => extentOf(m));
   const EW = Math.max(...es.map(e => e.tx)), EH = Math.max(...es.map(e => e.tz));
@@ -55,6 +57,7 @@ for (const id of ids) {
       for (let i = 0; i < PW; i++) { put(sx + i, sy, edge); put(sx + i, sy + PH - 1, edge); }
       for (let j = 0; j < PH; j++) { put(sx, sy + j, edge); put(sx + PW - 1, sy + j, edge); }
     }
+    if (name === 'relief' && mosaicOnly) continue;
     writeFileSync(`${dir}/${name}-${id}.png`, PNG.sync.write(png));
   }
 
@@ -65,8 +68,9 @@ for (const id of ids) {
     intensity: t.intensity,
     legendary: t.legendary && t.legendary !== 'none' ? t.legendary : null,
     greyscale: !!c.greyscale,
+    mosaicOnly,
     background: COLOR_BY_ID.get(c.panel)?.name,
-    reliefPieces: models[0][1].pieces.filter(p => p.role === 'squiggle').length,
+    reliefPieces: mosaicOnly ? null : models[0][1].pieces.filter(p => p.role === 'squiggle').length,
     mosaicPieces: models[1][1].pieces.filter(p => p.role === 'squiggle').length,
   });
   console.log(`#${id}  ${typeLabel(t)} / ${t.intensity}${t.legendary && t.legendary !== 'none' ? ' / ' + t.legendary : ''}`);
